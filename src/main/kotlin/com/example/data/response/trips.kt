@@ -1,5 +1,6 @@
 package com.example.data.response
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -7,11 +8,11 @@ data class TripListResponse(
     val trips: List<TripResponse>
 )
 
-@Serializable
+@Serializable()
 data class TripResponse(
-    val id: Int,
+    val id: String,
     val title: String,
     val description: String,
-    val startDate: String,
-    val finishDate: String
+    @SerialName("start_date") val startDate: String,
+    @SerialName("finish_date") val finishDate: String
 )

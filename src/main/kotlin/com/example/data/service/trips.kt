@@ -22,8 +22,8 @@ fun Route.configureTripsService() {
                 it[TripEntity.id]!!,
                 it[TripEntity.title]!!,
                 it[TripEntity.description]!!,
-                it[TripEntity.startDate]!!.format(DateTimeFormatter.ISO_DATE),
-                it[TripEntity.finishDate]!!.format(DateTimeFormatter.ISO_DATE),
+                it[TripEntity.startDate]!!.format(DateTimeFormatter.ISO_DATE_TIME),
+                it[TripEntity.finishDate]!!.format(DateTimeFormatter.ISO_DATE_TIME),
             )
         }
         call.respond(
@@ -36,7 +36,7 @@ fun Route.configureTripsService() {
     }
 
     get("/trips/{id}") {
-        val id: Int = call.parameters["id"]?.toInt() ?: -1
+        val id: String = call.parameters["id"]?.toString() ?: ""
         val trip = db.from(TripEntity)
             .select()
             .where { TripEntity.id eq id }
@@ -45,8 +45,8 @@ fun Route.configureTripsService() {
                     it[TripEntity.id]!!,
                     it[TripEntity.title]!!,
                     it[TripEntity.description]!!,
-                    it[TripEntity.startDate]!!.format(DateTimeFormatter.ISO_DATE),
-                    it[TripEntity.finishDate]!!.format(DateTimeFormatter.ISO_DATE),
+                    it[TripEntity.startDate]!!.format(DateTimeFormatter.ISO_DATE_TIME),
+                    it[TripEntity.finishDate]!!.format(DateTimeFormatter.ISO_DATE_TIME),
                 )
             }.firstOrNull()
         if (trip == null) {
