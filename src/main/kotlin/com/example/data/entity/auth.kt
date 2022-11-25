@@ -11,18 +11,15 @@ object UserEntity : Table<Nothing>("users") {
     val confirmed = boolean("confirmed")
 }
 
-object SignUpApplicationEntity : Table<Nothing>("sign_up_applications") {
-    val id = varchar("id").primaryKey()
+object AuthApplicationEntity : Table<Nothing>("auth_applications") {
+    val token = varchar("token").primaryKey()
     val userId = varchar("user_id")
     val code = varchar("code")
     val datetime = datetime("datetime")
-    val token = datetime("token")
+    val type = enum<AuthApplicationType>("type")
 }
 
-object RecoveryApplicationEntity : Table<Nothing>("recovery_applications") {
-    val id = varchar("id").primaryKey()
-    val userId = varchar("user_id")
-    val code = varchar("code")
-    val datetime = datetime("datetime")
-    val token = datetime("token")
+enum class AuthApplicationType {
+    sign_up,
+    recovery,
 }

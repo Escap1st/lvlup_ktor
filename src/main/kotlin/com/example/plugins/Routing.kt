@@ -1,5 +1,7 @@
 package com.example.plugins
 
+import com.example.data.service.configureAuthService
+import com.example.data.service.configureProfileService
 import com.example.data.service.configureTripsService
 import io.ktor.server.routing.*
 import io.ktor.http.*
@@ -16,14 +18,12 @@ fun Application.configureRouting() {
     }
 
     routing {
-        get("/") {
-            call.respondText("Hello World!")
-        }
-        // Static plugin. Try to access `/static/index.html`
         static("/static") {
             resources("static")
         }
 
         configureTripsService()
+        configureProfileService()
+        configureAuthService()
     }
 }

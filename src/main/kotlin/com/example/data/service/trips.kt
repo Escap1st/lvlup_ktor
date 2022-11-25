@@ -6,6 +6,8 @@ import com.example.data.response.TripListResponse
 import com.example.data.response.TripResponse
 import com.example.data.response.Wrapper
 import com.example.plugins.DatabaseConnection
+import com.example.tools.respondWithData
+import com.example.tools.respondWithError
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -26,13 +28,7 @@ fun Route.configureTripsService() {
                 it[TripEntity.finishDate]!!.format(DateTimeFormatter.ISO_DATE_TIME),
             )
         }
-        call.respond(
-            HttpStatusCode.OK,
-            Wrapper(
-                success = true,
-                data = TripListResponse(trips)
-            )
-        )
+        call.respondWithData(TripListResponse(trips))
     }
 
     get("/trips/{id}") {
@@ -50,18 +46,13 @@ fun Route.configureTripsService() {
                 )
             }.firstOrNull()
         if (trip == null) {
-            call.respond(
+            call.respondWithError(
                 HttpStatusCode.NotFound,
-                Wrapper<String>(success = false, error = ErrorDescription("TRIP_NOT_FOUND", "No such trip"))
+                "TRIP_NOT_FOUND",
+                "No such trip"
             )
         } else {
-            call.respond(
-                HttpStatusCode.OK,
-                Wrapper(
-                    success = true,
-                    data = trip
-                )
-            )
+            call.respondWithData(trip)
         }
     }
 }

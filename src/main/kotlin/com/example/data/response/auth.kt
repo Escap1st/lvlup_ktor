@@ -16,3 +16,13 @@ data class TokensResponse(
     @SerialName("issued_at") val issuedAt: String,
     @SerialName("expires_at") val expiresAt: String,
 )
+
+@Serializable
+data class UserResponse (
+    val id: String,
+    val name: String,
+    val surname: String,
+    val email: String,
+    val password: String,
+    val confirmed: Boolean
+)
