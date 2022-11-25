@@ -16,7 +16,7 @@ suspend fun ApplicationCall.respondWithError(httpCode: HttpStatusCode, errorCode
     )
 }
 
-suspend fun <T> ApplicationCall.respondWithData(data: T) {
+suspend inline fun <reified T> ApplicationCall.respondWithData(data: T) {
     respond(
         HttpStatusCode.OK,
         Wrapper<T>(
