@@ -10,6 +10,8 @@ import com.example.data.response.SignUpResponse
 import com.example.plugins.DatabaseConnection
 import com.example.plugins.respondWithTokens
 import com.example.plugins.sha256
+import com.example.tools.EmailValidator
+import com.example.tools.PasswordValidator
 import com.example.tools.respondWithData
 import com.example.tools.respondWithError
 import io.ktor.http.*
@@ -89,8 +91,7 @@ fun Routing.configureAuthService() {
     post("/auth/sign_up") {
         val request = call.receive<SignUpRequest>()
         if (request.name.isBlank() || request.surname.isBlank() ||
-            //TODO validate email and password
-            request.email.isBlank() || request.password.isBlank()
+            !EmailValidator.isEmailValid(request.email) || !PasswordValidator.isPasswordValid(request.password)
         ) {
             call.respondWithError(
                 HttpStatusCode.BadRequest,
