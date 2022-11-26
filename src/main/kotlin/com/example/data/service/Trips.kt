@@ -1,6 +1,7 @@
 package com.example.data.service
 
 import com.example.data.database.table.TripTable
+import com.example.data.mapper.toResponse
 import com.example.data.response.ErrorDescriptions
 import com.example.data.response.TripListResponse
 import com.example.data.response.TripResponse
@@ -17,15 +18,10 @@ fun Route.configureTripsService() {
     val db = DatabaseConnection.database
 
     get("/trips") {
-        val trips = db.from(TripTable).select().map {
-            TripResponse(
-                it[TripTable.id]!!,
-                it[TripTable.title]!!,
-                it[TripTable.description]!!,
-                it[TripTable.startDate]!!.format(DateTimeFormatter.ISO_DATE_TIME),
-                it[TripTable.finishDate]!!.format(DateTimeFormatter.ISO_DATE_TIME),
-            )
-        }
+        val trips = db.from(TripTable)
+            .select()
+            .map { TripTable.createEntity(it) }
+            .map { it.toResponse() }
         call.respondWithData(TripListResponse(trips))
     }
 
@@ -34,15 +30,10 @@ fun Route.configureTripsService() {
         val trip = db.from(TripTable)
             .select()
             .where { TripTable.id eq id }
-            .map {
-                TripResponse(
-                    it[TripTable.id]!!,
-                    it[TripTable.title]!!,
-                    it[TripTable.description]!!,
-                    it[TripTable.startDate]!!.format(DateTimeFormatter.ISO_DATE_TIME),
-                    it[TripTable.finishDate]!!.format(DateTimeFormatter.ISO_DATE_TIME),
-                )
-            }.firstOrNull()
+            .map { TripTable.createEntity(it) }
+            .firstOrNull()
+            ?.toResponse()
+
         if (trip == null) {
             call.respondWithError(
                 HttpStatusCode.NotFound,
