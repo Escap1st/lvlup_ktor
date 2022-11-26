@@ -2,6 +2,7 @@ package com.example.plugins
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import com.example.data.response.ErrorDescriptions
 import com.example.data.response.TokensResponse
 import com.example.plugins.SecurityConfig.audience
 import com.example.plugins.SecurityConfig.issuer
@@ -30,7 +31,6 @@ fun Application.configureSecurity() {
     authentication {
         jwt {
 //            realm = "Access to 'hello'" //this@configureSecurity.environment.config.property("jwt.realm").getString()
-
             verifier(
                 JWT
                     .require(Algorithm.HMAC256(secret))
@@ -41,8 +41,7 @@ fun Application.configureSecurity() {
             challenge { _, _ ->
                 call.respondWithError(
                     HttpStatusCode.Unauthorized,
-                    "UNAUTHORIZED_USER",
-                    "Authenticate to access this data"
+                    ErrorDescriptions.unauthorizedUser
                 )
             }
             validate { credential ->
@@ -52,8 +51,6 @@ fun Application.configureSecurity() {
                     null
                 }
             }
-
-
         }
     }
 }

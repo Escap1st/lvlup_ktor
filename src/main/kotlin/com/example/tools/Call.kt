@@ -6,12 +6,12 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 
-suspend fun ApplicationCall.respondWithError(httpCode: HttpStatusCode, errorCode: String, message: String) {
+suspend fun ApplicationCall.respondWithError(httpCode: HttpStatusCode, description: ErrorDescription) {
     respond(
         httpCode,
         Wrapper<String>(
             success = false,
-            error = ErrorDescription(errorCode, message)
+            error = description
         )
     )
 }

@@ -1,5 +1,6 @@
 package com.example.data.service
 
+import com.example.data.response.ErrorDescriptions
 import com.example.plugins.DatabaseConnection
 import com.example.tools.respondWithError
 import io.ktor.http.*
@@ -18,8 +19,7 @@ fun Route.configureProfileService() {
             if (principal == null) {
                 call.respondWithError(
                     HttpStatusCode.Unauthorized,
-                    "UNAUTHORIZED_USER",
-                    "Authenticate to access this data"
+                    ErrorDescriptions.unauthorizedUser
                 )
             }
 
@@ -27,8 +27,7 @@ fun Route.configureProfileService() {
             if (expiresAt?.before(Date()) != false) {
                 call.respondWithError(
                     HttpStatusCode.Forbidden,
-                    "TOKEN_IS_OUTDATED",
-                    "Need to re-authenticate"
+                    ErrorDescriptions.outdatedToken
                 )
             }
 

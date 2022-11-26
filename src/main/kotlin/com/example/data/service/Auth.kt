@@ -6,6 +6,7 @@ import com.example.data.database.table.UsersTable
 import com.example.data.request.EmailConfirmationRequest
 import com.example.data.request.LoginRequest
 import com.example.data.request.SignUpRequest
+import com.example.data.response.ErrorDescriptions
 import com.example.data.response.SignUpResponse
 import com.example.plugins.DatabaseConnection
 import com.example.plugins.respondWithTokens
@@ -51,8 +52,7 @@ fun Routing.configureAuthService() {
             } else {
                 call.respondWithError(
                     HttpStatusCode.BadRequest,
-                    "WRONG_CONFIRMATION_CODE",
-                    "Wrong confirmation code",
+                    ErrorDescriptions.wrongConfirmationCode
                 )
                 return@post
             }
@@ -60,8 +60,7 @@ fun Routing.configureAuthService() {
 
         call.respondWithError(
             HttpStatusCode.BadRequest,
-            "FAILED_TO_CONFIRM",
-            "Failed to confirm authentication",
+            ErrorDescriptions.confirmationFailed
         )
     }
 
@@ -95,8 +94,7 @@ fun Routing.configureAuthService() {
         ) {
             call.respondWithError(
                 HttpStatusCode.BadRequest,
-                "INVALID_SIGN_UP_DATA",
-                "Check the data you provided to sign up",
+                ErrorDescriptions.invalidSignUpData
             )
             return@post
         }
@@ -111,8 +109,7 @@ fun Routing.configureAuthService() {
         if (registeredUsers.firstOrNull()?.confirmed == true) {
             call.respondWithError(
                 HttpStatusCode.BadRequest,
-                "USED_IS_REGISTERED",
-                "User is already registered",
+                ErrorDescriptions.userIsRegistered
             )
             return@post
         }
@@ -177,8 +174,7 @@ fun Routing.configureAuthService() {
 
         call.respondWithError(
             HttpStatusCode.BadRequest,
-            "FAILED_TO_ADD_USER",
-            "Failed to add user",
+            ErrorDescriptions.userCreationFailed
         )
     }
 

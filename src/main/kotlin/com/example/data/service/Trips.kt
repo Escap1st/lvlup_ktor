@@ -1,6 +1,7 @@
 package com.example.data.service
 
 import com.example.data.database.table.TripTable
+import com.example.data.response.ErrorDescriptions
 import com.example.data.response.TripListResponse
 import com.example.data.response.TripResponse
 import com.example.plugins.DatabaseConnection
@@ -45,8 +46,7 @@ fun Route.configureTripsService() {
         if (trip == null) {
             call.respondWithError(
                 HttpStatusCode.NotFound,
-                "TRIP_NOT_FOUND",
-                "No such trip"
+                ErrorDescriptions.tripNotFound
             )
         } else {
             call.respondWithData(trip)
