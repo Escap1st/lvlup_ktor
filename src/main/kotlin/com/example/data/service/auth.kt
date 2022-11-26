@@ -1,12 +1,12 @@
 package com.example.data.service
 
-import com.example.data.entity.AuthApplicationEntity
-import com.example.data.entity.AuthApplicationType
-import com.example.data.entity.UserEntity
+import com.example.data.database.entity.AuthApplicationType
+import com.example.data.database.table.AuthApplicationsTable
+import com.example.data.database.table.UsersTable
+import com.example.data.request.EmailConfirmationRequest
 import com.example.data.request.LoginRequest
 import com.example.data.request.SignUpRequest
 import com.example.data.response.SignUpResponse
-import com.example.data.response.UserResponse
 import com.example.plugins.DatabaseConnection
 import com.example.plugins.respondWithTokens
 import com.example.plugins.sha256
@@ -24,11 +24,43 @@ fun Routing.configureAuthService() {
     val db = DatabaseConnection.database
 
     post("/auth/sign_up/confirm") {
-//            UUID.randomUUID()
-//            val user = call.receive<User>()
-        // Check username and password
-        // ...
-        respondWithTokens(call)
+        val request = call.receive<EmailConfirmationRequest>()
+        val applies = db.from(AuthApplicationsTable)
+            .select()
+            .where(AuthApplicationsTable.token eq request.token)
+            .where(AuthApplicationsTable.type eq AuthApplicationType.sign_up)
+            .map {
+                AuthApplicationsTable.createEntity(it)
+            }
+
+        if (applies.isNotEmpty()) {
+            if (request.code.sha256() == applies.first().code) {
+                db.delete(AuthApplicationsTable) {
+                    it.token eq request.token
+                }
+                db.update(UsersTable) {
+                    set(it.confirmed, true)
+                    where {
+                        it.id eq applies.first().userId
+                    }
+                }
+                call.respondWithTokens(applies.first().userId)
+                return@post
+            } else {
+                call.respondWithError(
+                    HttpStatusCode.BadRequest,
+                    "WRONG_CONFIRMATION_CODE",
+                    "Wrong confirmation code",
+                )
+                return@post
+            }
+        }
+
+        call.respondWithError(
+            HttpStatusCode.BadRequest,
+            "FAILED_TO_CONFIRM",
+            "Failed to confirm authentication",
+        )
     }
 
     post("/auth/recover/confirm") {
@@ -36,7 +68,7 @@ fun Routing.configureAuthService() {
 //            val user = call.receive<User>()
         // Check username and password
         // ...
-        respondWithTokens(call)
+        call.respondWithTokens("")
     }
 
     post("/auth/login") {
@@ -44,14 +76,14 @@ fun Routing.configureAuthService() {
 //            val user = call.receive<User>()
         // Check username and password
         // ...
-        respondWithTokens(call)
+        call.respondWithTokens("")
     }
 
     post("/auth/refresh") {
 //            val user = call.receive<User>()
         // Check username and password
         // ...
-        respondWithTokens(call)
+        call.respondWithTokens("")
     }
 
     post("/auth/sign_up") {
@@ -68,18 +100,11 @@ fun Routing.configureAuthService() {
             return@post
         }
 
-        val registeredUsers = db.from(UserEntity)
+        val registeredUsers = db.from(UsersTable)
             .select()
-            .where(UserEntity.email eq request.email)
+            .where(UsersTable.email eq request.email)
             .map {
-                UserResponse(
-                    it[UserEntity.id]!!,
-                    it[UserEntity.name]!!,
-                    it[UserEntity.surname]!!,
-                    it[UserEntity.email]!!,
-                    it[UserEntity.password]!!,
-                    it[UserEntity.confirmed]!!,
-                )
+                UsersTable.createEntity(it)
             }
 
         if (registeredUsers.firstOrNull()?.confirmed == true) {
@@ -99,7 +124,7 @@ fun Routing.configureAuthService() {
         }
 
         val insertUser = if (haveUserWithTheSameEmail) {
-            db.update(UserEntity) {
+            db.update(UsersTable) {
                 set(it.name, request.name)
                 set(it.surname, request.surname)
                 set(it.password, request.password.sha256())
@@ -108,7 +133,7 @@ fun Routing.configureAuthService() {
                 }
             }
         } else {
-            db.insert(UserEntity) {
+            db.insert(UsersTable) {
                 set(it.id, userId)
                 set(it.name, request.name)
                 set(it.surname, request.surname)
@@ -118,23 +143,23 @@ fun Routing.configureAuthService() {
         }
 
         if (insertUser == 1) {
-            val userApplies = db.from(AuthApplicationEntity)
+            val userApplies = db.from(AuthApplicationsTable)
                 .select()
-                .where(AuthApplicationEntity.userId eq userId)
-                .where(AuthApplicationEntity.type eq AuthApplicationType.sign_up)
+                .where(AuthApplicationsTable.userId eq userId)
+                .where(AuthApplicationsTable.type eq AuthApplicationType.sign_up)
             val token = UUID.randomUUID().toString()
-            val code = (0..9999).random().toString().padStart(4, '0').sha256()
+            val code = (0..9999).random().toString().padStart(4, '0')
             val apply = if (userApplies.totalRecords == 0) {
-                db.insert(AuthApplicationEntity) {
-                    set(it.code, code)
+                db.insert(AuthApplicationsTable) {
+                    set(it.code, code.sha256())
                     set(it.token, token)
                     set(it.datetime, LocalDateTime.now())
                     set(it.type, AuthApplicationType.sign_up)
                     set(it.userId, userId)
                 }
             } else {
-                db.update(AuthApplicationEntity) {
-                    set(it.code, code)
+                db.update(AuthApplicationsTable) {
+                    set(it.code, code.sha256())
                     set(it.token, token)
                     set(it.datetime, LocalDateTime.now())
                     where {

@@ -2,13 +2,7 @@ package com.example.plugins
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import com.example.data.entity.UserEntity
-import com.example.data.request.LoginRequest
-import com.example.data.request.SignUpRequest
-import com.example.data.response.ErrorDescription
-import com.example.data.response.SignUpResponse
 import com.example.data.response.TokensResponse
-import com.example.data.response.Wrapper
 import com.example.plugins.SecurityConfig.audience
 import com.example.plugins.SecurityConfig.issuer
 import com.example.plugins.SecurityConfig.secret
@@ -18,9 +12,6 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
 import java.security.MessageDigest
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -47,7 +38,7 @@ fun Application.configureSecurity() {
                     .withIssuer(issuer)
                     .build()
             )
-            challenge { defaultScheme, realm ->
+            challenge { _, _ ->
                 call.respondWithError(
                     HttpStatusCode.Unauthorized,
                     "UNAUTHORIZED_USER",
@@ -67,29 +58,36 @@ fun Application.configureSecurity() {
     }
 }
 
-suspend fun respondWithTokens(call: ApplicationCall) {
+suspend fun ApplicationCall.respondWithTokens(userId: String) {
     val issuedAt = Date()
     val expiresAt = Date(issuedAt.time + 180000)
-    val accessToken = generateToken(audience, issuer, secret, issuedAt, expiresAt)
-    val refreshToken = generateToken(audience, issuer, secret, issuedAt)
+    val accessToken = generateToken(audience, issuer, secret, userId, issuedAt, expiresAt)
+    val refreshToken = generateToken(audience, issuer, secret, userId, issuedAt)
     val tokensResponse = TokensResponse(
         accessToken,
         refreshToken,
         issuedAt.formatZoned(),
         expiresAt.formatZoned(),
     )
-    call.respondWithData(tokensResponse)
+    respondWithData(tokensResponse)
 }
 
 fun Date.formatZoned(): String {
     return ZonedDateTime.ofInstant(toInstant(), ZoneId.of("Z")).format(DateTimeFormatter.ISO_DATE_TIME)
 }
 
-fun generateToken(audience: String, issuer: String, secret: String, issuedAt: Date, expiresAt: Date? = null): String {
+fun generateToken(
+    audience: String,
+    issuer: String,
+    secret: String,
+    userId: String,
+    issuedAt: Date,
+    expiresAt: Date? = null
+): String {
     val token = JWT.create()
         .withAudience(audience)
         .withIssuer(issuer)
-        .withClaim("user_id", "123")
+        .withClaim("user_id", userId)
         .withIssuedAt(issuedAt)
     if (expiresAt != null) token.withExpiresAt(expiresAt)
     return token.sign(Algorithm.HMAC256(secret))
