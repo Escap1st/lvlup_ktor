@@ -2,6 +2,8 @@ package com.example.data.service
 
 import com.example.data.response.ErrorDescriptions
 import com.example.plugins.DatabaseConnection
+import com.example.plugins.respondWithTokens
+import com.example.tools.respondWithData
 import com.example.tools.respondWithError
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -16,7 +18,7 @@ fun Route.configureProfileService() {
     authenticate {
         get("/profile") {
             val principal = call.principal<JWTPrincipal>()
-            if (principal == null) {
+            /*if (principal == null) {
                 call.respondWithError(
                     HttpStatusCode.Unauthorized,
                     ErrorDescriptions.unauthorizedUser
@@ -29,9 +31,10 @@ fun Route.configureProfileService() {
                     HttpStatusCode.Forbidden,
                     ErrorDescriptions.outdatedToken
                 )
-            }
+            }*/
 
             val userId = principal!!.payload.getClaim("user_id").asString()
+            call.respondWithData("123")
         }
     }
 }

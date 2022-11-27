@@ -146,7 +146,12 @@ fun Routing.configureAuthService() {
                 .where(AuthApplicationsTable.userId eq userId)
                 .where(AuthApplicationsTable.type eq AuthApplicationType.sign_up)
             val token = UUID.randomUUID().toString()
-            val code = (0..9999).random().toString().padStart(4, '0')
+            // TODO for easier test, remove on prod rollout
+            val code = if (request.email.endsWith("test.test")) {
+                "6666"
+            } else {
+                (0..9999).random().toString().padStart(4, '0')
+            }
             val apply = if (userApplies.totalRecords == 0) {
                 db.insert(AuthApplicationsTable) {
                     set(it.code, code.sha256())
