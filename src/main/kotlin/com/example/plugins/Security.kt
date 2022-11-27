@@ -1,7 +1,6 @@
 package com.example.plugins
 
 import com.auth0.jwt.JWT
-import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
 import com.example.data.database.table.UsersTable
 import com.example.data.response.ErrorDescriptions
@@ -72,14 +71,17 @@ fun Application.configureSecurity() {
 
 suspend fun ApplicationCall.respondWithTokens(userId: String) {
     val issuedAt = Date()
-    val expiresAt = Date(issuedAt.time + 180000)
-    val accessToken = generateToken(audience, issuer, secret, userId, issuedAt, expiresAt)
-    val refreshToken = generateToken(audience, issuer, secret, userId, issuedAt)
+    val accessTokenTtl = 5 * 60 * 1000L // 5 minutes
+    val refreshTokenTtl = 21 * 24 * 60 * 60 * 1000L // 21 days
+    val accessTokenExpiresAt = Date(issuedAt.time + accessTokenTtl)
+    val refreshTokenExpiresAt = Date(issuedAt.time + refreshTokenTtl)
+    val accessToken = generateToken(audience, issuer, secret, userId, issuedAt, accessTokenExpiresAt)
+    val refreshToken = generateToken(audience, issuer, secret, userId, issuedAt, refreshTokenExpiresAt)
     val tokensResponse = TokensResponse(
         accessToken,
         refreshToken,
         issuedAt.formatZoned(),
-        expiresAt.formatZoned(),
+        accessTokenExpiresAt.formatZoned(),
     )
     respondWithData(tokensResponse)
 }
@@ -94,7 +96,7 @@ fun generateToken(
     secret: String,
     userId: String,
     issuedAt: Date,
-    expiresAt: Date? = null
+    expiresAt: Date,
 ): String {
     val version = DatabaseConnection.database
         .from(UsersTable)
@@ -109,7 +111,7 @@ fun generateToken(
         .withClaim(Claims.userId, userId)
         .withClaim(Claims.version, version.sha256())
         .withIssuedAt(issuedAt)
-    if (expiresAt != null) token.withExpiresAt(expiresAt)
+        .withExpiresAt(expiresAt)
     return token.sign(Algorithm.HMAC256(secret))
 }
 
