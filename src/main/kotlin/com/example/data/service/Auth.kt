@@ -16,6 +16,7 @@ import com.example.tools.respondWithError
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.routing.*
 import org.ktorm.dsl.*
@@ -81,8 +82,16 @@ fun Routing.configureAuthService() {
 
     authenticate {
         post("/auth/refresh") {
-            val userId = call.getClaim(Claims.userId)
-            call.respondWithTokens(userId)
+            // to not allow using access token as refresh
+            if (call.principal<JWTPrincipal>()?.expiresAt == null) {
+                val userId = call.getClaim(Claims.userId)
+                call.respondWithTokens(userId)
+            } else {
+                call.respondWithError(
+                    HttpStatusCode.Unauthorized,
+                    ErrorDescriptions.unauthorizedUser
+                )
+            }
         }
     }
 
