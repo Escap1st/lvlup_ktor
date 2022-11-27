@@ -1,6 +1,7 @@
 package com.example.plugins
 
 import com.auth0.jwt.JWT
+import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
 import com.example.data.database.table.UsersTable
 import com.example.data.response.ErrorDescriptions
@@ -15,7 +16,6 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import org.ktorm.dsl.*
-import java.lang.NullPointerException
 import java.security.MessageDigest
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -51,14 +51,15 @@ fun Application.configureSecurity() {
                 val db = DatabaseConnection.database
                 val userId = credential.payload.getClaim(Claims.userId).asString()
                 if (userId != "") {
-                    val version = db.from(UsersTable)
-                        .select(UsersTable.password)
+                    val user = db.from(UsersTable)
+                        .select()
                         .where { UsersTable.id eq userId }
-                        .map { it[UsersTable.password] }
+                        .map { UsersTable.createEntity(it) }
                         .firstOrNull()
-                        ?.sha256()
 
-                    if (version == credential.payload.getClaim(Claims.version).asString()) {
+                    if (user != null && user.confirmed
+                        && user.password.sha256() == credential.payload.getClaim(Claims.version).asString()
+                    ) {
                         return@validate JWTPrincipal(credential.payload)
                     }
                 }
@@ -128,4 +129,8 @@ class Claims {
         const val userId = "user_id"
         const val version = "version"
     }
+}
+
+fun ApplicationCall.getClaim(claim: String): String {
+    return principal<JWTPrincipal>()!!.payload.getClaim(claim).asString()
 }

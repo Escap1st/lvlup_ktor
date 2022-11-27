@@ -8,15 +8,14 @@ import com.example.data.request.LoginRequest
 import com.example.data.request.SignUpRequest
 import com.example.data.response.ErrorDescriptions
 import com.example.data.response.SignUpResponse
-import com.example.plugins.DatabaseConnection
-import com.example.plugins.respondWithTokens
-import com.example.plugins.sha256
+import com.example.plugins.*
 import com.example.tools.EmailValidator
 import com.example.tools.PasswordValidator
 import com.example.tools.respondWithData
 import com.example.tools.respondWithError
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.routing.*
 import org.ktorm.dsl.*
@@ -80,11 +79,11 @@ fun Routing.configureAuthService() {
         call.respondWithTokens("")
     }
 
-    post("/auth/refresh") {
-//            val user = call.receive<User>()
-        // Check username and password
-        // ...
-        call.respondWithTokens("")
+    authenticate {
+        post("/auth/refresh") {
+            val userId = call.getClaim(Claims.userId)
+            call.respondWithTokens(userId)
+        }
     }
 
     post("/auth/sign_up") {

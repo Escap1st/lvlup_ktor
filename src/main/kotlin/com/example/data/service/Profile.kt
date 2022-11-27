@@ -1,5 +1,6 @@
 package com.example.data.service
 
+import com.auth0.jwt.JWTVerifier
 import com.example.data.response.ErrorDescriptions
 import com.example.plugins.DatabaseConnection
 import com.example.plugins.respondWithTokens
