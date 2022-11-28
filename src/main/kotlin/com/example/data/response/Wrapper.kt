@@ -49,5 +49,9 @@ class ErrorDescriptions {
             "TRIP_NOT_FOUND",
             "No such trip"
         )
+        val invalidToken = ErrorDescription(
+            "INVALID_TOKEN",
+            "Invalid token"
+        )
     }
 }

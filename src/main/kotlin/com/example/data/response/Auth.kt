@@ -11,6 +11,7 @@ data class AccountRecoveryResponse(val token: String)
 
 @Serializable
 data class TokensResponse(
+    @SerialName("user_id") val userId: String,
     @SerialName("access_token") val accessToken: String,
     @SerialName("refresh_token") val refreshToken: String,
     @SerialName("issued_at") val issuedAt: String,

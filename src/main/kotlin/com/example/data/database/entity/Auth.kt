@@ -20,6 +20,12 @@ interface AuthApplicationEntity : Entity<AuthApplicationEntity> {
     val type: AuthApplicationType
 }
 
+interface TokenEntity : Entity<TokenEntity> {
+    val token: String
+    val userId: String
+    val expiresAt: LocalDateTime
+}
+
 enum class AuthApplicationType {
     sign_up,
     recovery,

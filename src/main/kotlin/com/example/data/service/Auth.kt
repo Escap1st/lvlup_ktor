@@ -2,20 +2,23 @@ package com.example.data.service
 
 import com.example.data.database.entity.AuthApplicationType
 import com.example.data.database.table.AuthApplicationsTable
+import com.example.data.database.table.TokensTable
 import com.example.data.database.table.UsersTable
 import com.example.data.request.EmailConfirmationRequest
 import com.example.data.request.LoginRequest
+import com.example.data.request.RefreshRequest
 import com.example.data.request.SignUpRequest
 import com.example.data.response.ErrorDescriptions
 import com.example.data.response.SignUpResponse
-import com.example.plugins.*
+import com.example.plugins.DatabaseConnection
+import com.example.plugins.respondWithTokens
+import com.example.plugins.sha256
 import com.example.tools.EmailValidator
 import com.example.tools.PasswordValidator
 import com.example.tools.respondWithData
 import com.example.tools.respondWithError
 import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.routing.*
 import org.ktorm.dsl.*
@@ -25,9 +28,19 @@ import java.util.*
 fun Routing.configureAuthService() {
     val db = DatabaseConnection.database
 
+    fun addToken(userId: String): String {
+        return UUID.randomUUID().toString().apply {
+            db.insert(TokensTable) {
+                set(it.token, this@apply)
+                set(it.expiresAt, LocalDateTime.now().plusWeeks(3))
+                set(it.userId, userId)
+            }
+        }
+    }
+
     post("/auth/sign_up/confirm") {
         val request = call.receive<EmailConfirmationRequest>()
-        val applies = db.from(AuthApplicationsTable)
+        val applications = db.from(AuthApplicationsTable)
             .select()
             .where(AuthApplicationsTable.token eq request.token)
             .where(AuthApplicationsTable.type eq AuthApplicationType.sign_up)
@@ -35,18 +48,19 @@ fun Routing.configureAuthService() {
                 AuthApplicationsTable.createEntity(it)
             }
 
-        if (applies.isNotEmpty()) {
-            if (request.code.sha256() == applies.first().code) {
+        if (applications.isNotEmpty()) {
+            val application = applications.first()
+            if (request.code.sha256() == application.code) {
                 db.delete(AuthApplicationsTable) {
                     it.token eq request.token
                 }
                 db.update(UsersTable) {
                     set(it.confirmed, true)
                     where {
-                        it.id eq applies.first().userId
+                        it.id eq application.userId
                     }
                 }
-                call.respondWithTokens(applies.first().userId)
+                call.respondWithTokens(application.userId, addToken(application.userId))
                 return@post
             } else {
                 call.respondWithError(
@@ -68,7 +82,7 @@ fun Routing.configureAuthService() {
 //            val user = call.receive<User>()
         // Check username and password
         // ...
-        call.respondWithTokens("")
+        call.respondWithTokens("", addToken(""))
     }
 
     post("/auth/login") {
@@ -76,14 +90,30 @@ fun Routing.configureAuthService() {
 //            val user = call.receive<User>()
         // Check username and password
         // ...
-        call.respondWithTokens("")
+        call.respondWithTokens("", addToken(""))
     }
 
-    authenticate {
-        post("/auth/refresh") {
-            val userId = call.getClaim(Claims.userId)
-            call.respondWithTokens(userId)
+    post("/auth/refresh") {
+        val request = call.receive<RefreshRequest>()
+        val dbToken = db.from(TokensTable)
+            .select()
+            .where(TokensTable.token eq request.token)
+            .where(TokensTable.userId eq request.userId)
+            .map { TokensTable.createEntity(it) }
+            .firstOrNull()
+
+        if (dbToken?.expiresAt?.isAfter(LocalDateTime.now()) == true) {
+            val newToken = UUID.randomUUID().toString()
+            db.update(TokensTable) {
+                set(it.token, newToken)
+                set(it.expiresAt, LocalDateTime.now().plusWeeks(3))
+                where { it.token eq request.token }
+            }
+            call.respondWithTokens(request.userId, newToken)
+            return@post
         }
+
+        call.respondWithError(HttpStatusCode.BadRequest, ErrorDescriptions.invalidToken)
     }
 
     post("/auth/sign_up") {
@@ -183,6 +213,14 @@ fun Routing.configureAuthService() {
     }
 
     post("/auth/recover") {
+
+    }
+
+    post("/auth/sign_up/resend") {
+
+    }
+
+    post("/auth/recover/resend") {
 
     }
 }

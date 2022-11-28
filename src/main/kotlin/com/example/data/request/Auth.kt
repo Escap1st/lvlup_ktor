@@ -1,5 +1,6 @@
 package com.example.data.request
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -25,4 +26,10 @@ data class LoginRequest(
 @Serializable
 data class AccountRecoveryRequest(
     val email: String
+)
+
+@Serializable
+data class RefreshRequest(
+    @SerialName("user_id") val userId: String,
+    val token: String,
 )

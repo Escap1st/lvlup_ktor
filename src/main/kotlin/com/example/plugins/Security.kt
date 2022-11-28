@@ -69,19 +69,17 @@ fun Application.configureSecurity() {
     }
 }
 
-suspend fun ApplicationCall.respondWithTokens(userId: String) {
+suspend fun ApplicationCall.respondWithTokens(userId: String, refreshToken: String) {
     val issuedAt = Date()
-    val accessTokenTtl = 5 * 60 * 1000L // 5 minutes
-    val refreshTokenTtl = 21 * 24 * 60 * 60 * 1000L // 21 days
-    val accessTokenExpiresAt = Date(issuedAt.time + accessTokenTtl)
-    val refreshTokenExpiresAt = Date(issuedAt.time + refreshTokenTtl)
-    val accessToken = generateToken(audience, issuer, secret, userId, issuedAt, accessTokenExpiresAt)
-    val refreshToken = generateToken(audience, issuer, secret, userId, issuedAt, refreshTokenExpiresAt)
+    val accessTokenTtl = 3 * 60 * 1000L // 3 minutes
+    val expiresAt = Date(issuedAt.time + accessTokenTtl)
+    val accessToken = generateToken(audience, issuer, secret, userId, issuedAt, expiresAt)
     val tokensResponse = TokensResponse(
+        userId,
         accessToken,
         refreshToken,
         issuedAt.formatZoned(),
-        accessTokenExpiresAt.formatZoned(),
+        expiresAt.formatZoned(),
     )
     respondWithData(tokensResponse)
 }
