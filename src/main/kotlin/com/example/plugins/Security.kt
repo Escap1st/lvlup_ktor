@@ -56,8 +56,8 @@ fun Application.configureSecurity() {
                         .map { UsersTable.createEntity(it) }
                         .firstOrNull()
 
-                    if (user != null && user.confirmed
-                        && user.password.sha256() == credential.payload.getClaim(Claims.version).asString()
+                    if (user?.password != null &&
+                        user.password!!.sha256() == credential.payload.getClaim(Claims.version).asString()
                     ) {
                         return@validate JWTPrincipal(credential.payload)
                     }

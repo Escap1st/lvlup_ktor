@@ -1,13 +1,11 @@
 package com.example.data.service
 
 import com.example.data.database.table.AuthApplicationsTable
-import com.example.data.database.table.TokensTable
+import com.example.data.database.table.RefreshTokensTable
 import com.example.data.database.table.UsersTable
 import com.example.data.request.*
-import com.example.data.response.AccountRecoveryResponse
-import com.example.data.response.CodeResendResponse
+import com.example.data.response.AuthApplicationResponse
 import com.example.data.response.ErrorDescriptions
-import com.example.data.response.SignUpResponse
 import com.example.plugins.DatabaseConnection
 import com.example.plugins.respondWithTokens
 import com.example.plugins.sha256
@@ -28,7 +26,7 @@ fun Routing.configureAuthService() {
 
     fun createRefreshToken(userId: String): String {
         return UUID.randomUUID().toString().apply {
-            db.insert(TokensTable) {
+            db.insert(RefreshTokensTable) {
                 set(it.token, this@apply)
                 set(it.expiresAt, LocalDateTime.now().plusWeeks(3))
                 set(it.userId, userId)
@@ -84,10 +82,9 @@ fun Routing.configureAuthService() {
                     set(it.password, application.password)
                     where { it.id eq application.userId }
                 }
-                call.respondWithTokens(
-                    application.userId,
-                    createRefreshToken(application.userId)
-                )
+                createRefreshToken(application.userId).apply {
+                    call.respondWithTokens(application.userId, this)
+                }
                 return@post
             } else {
                 call.respondWithError(
@@ -106,7 +103,6 @@ fun Routing.configureAuthService() {
 
     post("/v1/auth/login") {
         val request = call.receive<LoginRequest>()
-//
         val users = db.from(UsersTable).select()
             .where(UsersTable.email eq request.email)
             .where(UsersTable.password eq request.password.sha256())
@@ -114,7 +110,9 @@ fun Routing.configureAuthService() {
 
         if (users.size == 1) {
             val userId = users.first().id
-            call.respondWithTokens(userId, createRefreshToken(userId))
+            createRefreshToken(userId).apply {
+                call.respondWithTokens(userId, this)
+            }
         } else {
             call.respondWithError(
                 HttpStatusCode.BadRequest,
@@ -125,16 +123,16 @@ fun Routing.configureAuthService() {
 
     post("/v1/auth/refresh") {
         val request = call.receive<RefreshRequest>()
-        val dbToken = db.from(TokensTable)
+        val dbToken = db.from(RefreshTokensTable)
             .select()
-            .where(TokensTable.token eq request.token)
-            .where(TokensTable.userId eq request.userId)
-            .map { TokensTable.createEntity(it) }
+            .where(RefreshTokensTable.token eq request.token)
+            .where(RefreshTokensTable.userId eq request.userId)
+            .map { RefreshTokensTable.createEntity(it) }
             .firstOrNull()
 
         if (dbToken?.expiresAt?.isAfter(LocalDateTime.now()) == true) {
             val newToken = UUID.randomUUID().toString()
-            db.update(TokensTable) {
+            db.update(RefreshTokensTable) {
                 set(it.token, newToken)
                 set(it.expiresAt, LocalDateTime.now().plusWeeks(3))
                 where { it.token eq request.token }
@@ -199,9 +197,8 @@ fun Routing.configureAuthService() {
         }
 
         if (insertUser == 1) {
-            val token = createNewApplication(registeredUsers.first().id, request.password, request.email)
-            if (token != null) {
-                call.respondWithData(SignUpResponse(token))
+            createNewApplication(userId, request.password, request.email)?.let {
+                call.respondWithData(AuthApplicationResponse(it))
                 return@post
             }
         }
@@ -235,15 +232,15 @@ fun Routing.configureAuthService() {
             return@post
         }
 
-        val token = createNewApplication(registeredUsers.first().id, request.password, request.email)
-        if (token != null) {
-            call.respondWithData(AccountRecoveryResponse(token))
-        } else {
-            call.respondWithError(
-                HttpStatusCode.BadRequest,
-                ErrorDescriptions.userCreationFailed
-            )
+        createNewApplication(registeredUsers.first().id, request.password, request.email)?.let {
+            call.respondWithData(AuthApplicationResponse(it))
+            return@post
         }
+
+        call.respondWithError(
+            HttpStatusCode.BadRequest,
+            ErrorDescriptions.userCreationFailed
+        )
     }
 
     post("/v1/auth/resend_code") {
@@ -269,7 +266,7 @@ fun Routing.configureAuthService() {
                 where { it.token eq request.token }
             }
 
-            call.respondWithData(CodeResendResponse(newToken))
+            call.respondWithData(AuthApplicationResponse(newToken))
             return@post
         }
 

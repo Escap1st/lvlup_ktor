@@ -4,13 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class SignUpResponse(val token: String)
-
-@Serializable
-data class AccountRecoveryResponse(val token: String)
-
-@Serializable
-data class CodeResendResponse(val token: String)
+data class AuthApplicationResponse(val token: String)
 
 @Serializable
 data class TokensResponse(

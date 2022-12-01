@@ -19,7 +19,7 @@ interface AuthApplicationEntity : Entity<AuthApplicationEntity> {
     val password: String?
 }
 
-interface TokenEntity : Entity<TokenEntity> {
+interface RefreshTokenEntity : Entity<RefreshTokenEntity> {
     val token: String
     val userId: String
     val expiresAt: LocalDateTime
