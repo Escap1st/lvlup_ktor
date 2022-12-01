@@ -12,7 +12,7 @@ fun Route.configureProfileService() {
     val db = DatabaseConnection.database
 
     authenticate {
-        get("/profile") {
+        get("/v1/profile") {
             val userId = call.getClaim(Claims.userId)
             call.respondWithData("123")
         }

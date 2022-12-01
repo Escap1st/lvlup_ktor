@@ -25,11 +25,17 @@ data class LoginRequest(
 
 @Serializable
 data class AccountRecoveryRequest(
-    val email: String
+    val email: String,
+    val password: String,
 )
 
 @Serializable
 data class RefreshRequest(
     @SerialName("user_id") val userId: String,
     val token: String,
+)
+
+@Serializable
+data class CodeResendRequest(
+    val token: String
 )

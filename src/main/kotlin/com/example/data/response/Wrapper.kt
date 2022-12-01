@@ -21,9 +21,17 @@ class ErrorDescriptions {
             "INVALID_SIGN_UP_DATA",
             "Check the data you provided to sign up",
         )
+        val invalidRecoveryData = ErrorDescription(
+            "INVALID_RECOVERY_DATA",
+            "Check the data you provided to recover an account",
+        )
         val userIsRegistered = ErrorDescription(
             "USED_IS_REGISTERED",
             "User is already registered",
+        )
+        val userIsNotRegistered = ErrorDescription(
+            "USED_IS_NOT_REGISTERED",
+            "User is not registered",
         )
         val wrongConfirmationCode = ErrorDescription(
             "WRONG_CONFIRMATION_CODE",
@@ -33,9 +41,21 @@ class ErrorDescriptions {
             "CONFIRMATION_FAILED",
             "Failed to confirm authentication",
         )
+        val codeResendFailed = ErrorDescription(
+            "CODE_RESEND_FAILED",
+            "Failed to resend the code",
+        )
+        val wrongCredentials = ErrorDescription(
+            "WRONG_CREDENTIALS",
+            "Wrong email and/or password",
+        )
         val userCreationFailed = ErrorDescription(
             "FAILED_TO_ADD_USER",
             "Failed to add user",
+        )
+        val accountRecoveryFailed = ErrorDescription(
+            "FAILED_TO_RECOVER_AN_ACCOUNT",
+            "Failed to recover an account",
         )
         val unauthorizedUser = ErrorDescription(
             "UNAUTHORIZED_USER",

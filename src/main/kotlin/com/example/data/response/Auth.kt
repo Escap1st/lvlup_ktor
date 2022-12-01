@@ -10,6 +10,9 @@ data class SignUpResponse(val token: String)
 data class AccountRecoveryResponse(val token: String)
 
 @Serializable
+data class CodeResendResponse(val token: String)
+
+@Serializable
 data class TokensResponse(
     @SerialName("user_id") val userId: String,
     @SerialName("access_token") val accessToken: String,
@@ -24,6 +27,4 @@ data class UserResponse (
     val name: String,
     val surname: String,
     val email: String,
-    val password: String,
-    val confirmed: Boolean
 )

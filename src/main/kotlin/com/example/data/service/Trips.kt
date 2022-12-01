@@ -17,7 +17,7 @@ import java.time.format.DateTimeFormatter
 fun Route.configureTripsService() {
     val db = DatabaseConnection.database
 
-    get("/trips") {
+    get("/v1/trips") {
         val trips = db.from(TripTable)
             .select()
             .map { TripTable.createEntity(it) }
@@ -25,7 +25,7 @@ fun Route.configureTripsService() {
         call.respondWithData(TripListResponse(trips))
     }
 
-    get("/trips/{id}") {
+    get("/v1/trips/{id}") {
         val id: String = call.parameters["id"]?.toString() ?: ""
         val trip = db.from(TripTable)
             .select()
