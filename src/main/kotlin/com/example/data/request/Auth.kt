@@ -24,8 +24,13 @@ data class LoginRequest(
 )
 
 @Serializable
-data class AccountRecoveryRequest(
+data class AccountRecoveryInitRequest(
     val email: String,
+)
+
+@Serializable
+data class AccountRecoveryCompleteRequest(
+    val token: String,
     val password: String,
 )
 

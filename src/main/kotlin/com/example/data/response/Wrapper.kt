@@ -41,6 +41,10 @@ class ErrorDescriptions {
             "CONFIRMATION_FAILED",
             "Failed to confirm authentication",
         )
+        val passwordChangeFailed = ErrorDescription(
+            "PASSWORD_CHANGE_FAILED",
+            "Failed to change password",
+        )
         val codeResendFailed = ErrorDescription(
             "CODE_RESEND_FAILED",
             "Failed to resend the code",
@@ -72,6 +76,10 @@ class ErrorDescriptions {
         val invalidToken = ErrorDescription(
             "INVALID_TOKEN",
             "Invalid token"
+        )
+        val noUserFound = ErrorDescription(
+            "NO_USER_FOUND",
+            "No user found"
         )
     }
 }

@@ -1,6 +1,7 @@
 package com.example.data.database.table
 
 import com.example.data.database.entity.AuthApplicationEntity
+import com.example.data.database.entity.AuthApplicationType
 import com.example.data.database.entity.RefreshTokenEntity
 import com.example.data.database.entity.UsersEntity
 import org.ktorm.schema.*
@@ -19,6 +20,7 @@ object AuthApplicationsTable : Table<AuthApplicationEntity>("auth_applications")
     val code = varchar("code").bindTo { it.code }
     val datetime = datetime("datetime").bindTo { it.datetime }
     val password = varchar("password").bindTo { it.password }
+    val type = enum<AuthApplicationType>("type").bindTo { it.type }
 }
 
 object RefreshTokensTable : Table<RefreshTokenEntity>("refresh_tokens") {
