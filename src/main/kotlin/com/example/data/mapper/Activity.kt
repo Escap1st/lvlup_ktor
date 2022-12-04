@@ -13,8 +13,8 @@ fun ActivityEntity.toResponse(): ActivityResponse {
 }
 
 // TODO: deal with translations
-fun getActivityDisplayName(name: String) : String{
-    return when(name) {
+fun getActivityDisplayName(name: String): String {
+    return when (name) {
         "hiking" -> "Походы"
         "climbing" -> "Восхождения"
         "surfing" -> "Серфинг"

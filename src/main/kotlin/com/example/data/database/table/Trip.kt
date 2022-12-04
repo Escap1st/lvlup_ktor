@@ -1,7 +1,10 @@
 package com.example.data.database.table
 
 import com.example.data.database.entity.TripEntity
-import org.ktorm.schema.*
+import org.ktorm.schema.Table
+import org.ktorm.schema.datetime
+import org.ktorm.schema.text
+import org.ktorm.schema.varchar
 
 object TripTable : Table<TripEntity>("trips") {
     val id = varchar("id").primaryKey().bindTo { it.id }

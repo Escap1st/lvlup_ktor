@@ -1,6 +1,5 @@
 package com.example.plugins
 
-import io.ktor.server.application.*
 import org.ktorm.database.Database
 
 object DatabaseConnection {

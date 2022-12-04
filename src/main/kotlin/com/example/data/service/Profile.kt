@@ -8,13 +8,11 @@ import com.example.plugins.Claims
 import com.example.plugins.DatabaseConnection
 import com.example.plugins.getClaim
 import com.example.tools.respondSuccess
-import com.example.tools.respondWithData
 import com.example.tools.respondWithError
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
-import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.ktorm.dsl.from
 import org.ktorm.dsl.insert

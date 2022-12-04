@@ -3,8 +3,10 @@ package com.example.data.database.table
 import com.example.data.database.entity.AuthApplicationEntity
 import com.example.data.database.entity.AuthApplicationType
 import com.example.data.database.entity.RefreshTokenEntity
-import com.example.data.database.entity.UsersEntity
-import org.ktorm.schema.*
+import org.ktorm.schema.Table
+import org.ktorm.schema.datetime
+import org.ktorm.schema.enum
+import org.ktorm.schema.varchar
 
 object AuthApplicationsTable : Table<AuthApplicationEntity>("auth_applications") {
     val token = varchar("token").primaryKey().bindTo { it.token }
