@@ -1,8 +1,7 @@
 package com.example.plugins
 
+import com.example.data.service.*
 import com.example.data.service.configureAuthService
-import com.example.data.service.configureProfileService
-import com.example.data.service.configureTripsService
 import io.ktor.server.routing.*
 import io.ktor.http.*
 import io.ktor.server.plugins.statuspages.*
@@ -23,6 +22,8 @@ fun Application.configureRouting() {
         }
 
         configureTripsService()
+        configureActivitiesService()
+        configureUsersService()
         configureProfileService()
         configureAuthService()
     }

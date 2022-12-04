@@ -81,5 +81,9 @@ class ErrorDescriptions {
             "NO_USER_FOUND",
             "No user found"
         )
+        val noActivityFound = ErrorDescription(
+            "NO_ACTIVITY_FOUND",
+            "No activity found"
+        )
     }
 }

@@ -25,3 +25,12 @@ suspend inline fun <reified T> ApplicationCall.respondWithData(data: T) {
         )
     )
 }
+
+suspend inline fun ApplicationCall.respondSuccess() {
+    respond(
+        HttpStatusCode.OK,
+        Wrapper<String>(
+            success = true
+        )
+    )
+}
