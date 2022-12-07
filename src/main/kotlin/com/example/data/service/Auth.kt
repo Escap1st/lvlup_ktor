@@ -228,7 +228,7 @@ fun Routing.configureAuthService() {
         call.respondWithError(HttpStatusCode.BadRequest, ErrorDescriptions.invalidToken)
     }
 
-    post("/v1/auth/recover/init") {
+    post("/v1/auth/recovery/init") {
         val request = call.receive<AccountRecoveryInitRequest>()
         if (!EmailValidator.isEmailValid(request.email)) {
             call.respondWithError(
@@ -266,7 +266,7 @@ fun Routing.configureAuthService() {
         )
     }
 
-    post("/v1/auth/recover/confirm") {
+    post("/v1/auth/recovery/confirm") {
         val request = call.receive<EmailConfirmationRequest>()
 
         val applications = db.from(AuthApplicationsTable)
@@ -300,7 +300,7 @@ fun Routing.configureAuthService() {
         )
     }
 
-    post("/v1/auth/recover/complete") {
+    post("/v1/auth/recovery/complete") {
         val request = call.receive<AccountRecoveryCompleteRequest>()
 
         if (!PasswordValidator.isPasswordValid(request.password)) {
