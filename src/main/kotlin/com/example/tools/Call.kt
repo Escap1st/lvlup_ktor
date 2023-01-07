@@ -16,7 +16,10 @@ suspend fun ApplicationCall.respondWithError(httpCode: HttpStatusCode, descripti
     )
 }
 
-suspend inline fun <reified T> ApplicationCall.respondWithData(data: T) {
+suspend inline fun <reified T> ApplicationCall.respondWithData(data: T, headers: Map<String, String>? = null) {
+    headers?.let {
+        it.forEach { entry -> response.header(entry.key, entry.value) }
+    }
     respond(
         HttpStatusCode.OK,
         Wrapper<T>(

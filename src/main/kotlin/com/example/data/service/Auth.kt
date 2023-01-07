@@ -46,7 +46,6 @@ fun Routing.configureAuthService() {
     fun createNewApplication(
         type: AuthApplicationType,
         userId: String,
-        password: String? = null,
         code: String? = null
     ): String? {
         val userApplies = db.from(AuthApplicationsTable)
@@ -59,7 +58,6 @@ fun Routing.configureAuthService() {
                 set(it.userId, userId)
                 set(it.datetime, LocalDateTime.now())
                 set(it.type, type)
-                if (password != null) set(it.password, password.sha256())
                 if (code != null) set(it.code, code.sha256())
             }
         } else {
@@ -75,13 +73,91 @@ fun Routing.configureAuthService() {
         return if (appliedCount == 1) token else null
     }
 
+    suspend fun ApplicationCall.confirmEmail(
+        initApplicationType: AuthApplicationType,
+        completeApplicationType: AuthApplicationType
+    ) {
+        val request = receive<EmailConfirmationRequest>()
+
+        val applications = db.from(AuthApplicationsTable)
+            .select()
+            .where(
+                (AuthApplicationsTable.token eq request.token) and
+                        (AuthApplicationsTable.type eq initApplicationType)
+            )
+            .map { AuthApplicationsTable.createEntity(it) }
+
+        if (applications.isNotEmpty()) {
+            val application = applications.first()
+            if (request.code.sha256() == application.code) {
+                db.delete(AuthApplicationsTable) { it.token eq request.token }
+                createNewApplication(completeApplicationType, application.userId)?.let {
+                    respondWithData(AuthApplicationResponse(it))
+                    return
+                }
+            } else {
+                respondWithError(
+                    HttpStatusCode.BadRequest,
+                    ErrorDescriptions.wrongConfirmationCode
+                )
+                return
+            }
+        }
+
+        respondWithError(
+            HttpStatusCode.BadRequest,
+            ErrorDescriptions.confirmationFailed
+        )
+    }
+
+    suspend fun ApplicationCall.setPassword(applicationType: AuthApplicationType) {
+        val request = receive<PasswordChangeRequest>()
+
+        if (!PasswordValidator.isPasswordValid(request.password)) {
+            respondWithError(
+                HttpStatusCode.BadRequest,
+                ErrorDescriptions.invalidRecoveryData
+            )
+            return
+        }
+
+        val applications = db.from(AuthApplicationsTable)
+            .select()
+            .where(
+                (AuthApplicationsTable.token eq request.token)
+                        and (AuthApplicationsTable.type eq applicationType)
+            )
+            .map { AuthApplicationsTable.createEntity(it) }
+
+        if (applications.isNotEmpty()) {
+            val application = applications.first()
+
+            val changedUsers = db.update(UsersTable) {
+                set(it.password, request.password.sha256())
+                where { it.id eq application.userId }
+            }
+
+            if (changedUsers == 1) {
+                db.delete(AuthApplicationsTable) { it.token eq request.token }
+                createRefreshToken(application.userId).apply {
+                    respondWithTokens(application.userId, this)
+                    return
+                }
+            }
+        }
+
+        respondWithError(
+            HttpStatusCode.BadRequest,
+            ErrorDescriptions.passwordChangeFailed
+        )
+    }
+
     post("/v1/auth/sign_up/init") {
-        val request = call.receive<SignUpRequest>()
+        val request = call.receive<SignUpInitRequest>()
 
         // validate received data
         if (request.name.isBlank() || request.surname.isBlank()
             || !EmailValidator.isEmailValid(request.email)
-            || !PasswordValidator.isPasswordValid(request.password)
         ) {
             call.respondWithError(
                 HttpStatusCode.BadRequest,
@@ -129,9 +205,8 @@ fun Routing.configureAuthService() {
 
         if (insertUser == 1) {
             createNewApplication(
-                AuthApplicationType.sign_up,
+                AuthApplicationType.sign_up_init,
                 userId,
-                request.password,
                 createConfirmationCode(request.email)
             )?.let {
                 call.respondWithData(AuthApplicationResponse(it))
@@ -146,40 +221,11 @@ fun Routing.configureAuthService() {
     }
 
     post("/v1/auth/sign_up/confirm") {
-        val request = call.receive<EmailConfirmationRequest>()
-        val applications = db.from(AuthApplicationsTable)
-            .select()
-            .where(
-                (AuthApplicationsTable.token eq request.token) and
-                        (AuthApplicationsTable.type eq AuthApplicationType.sign_up)
-            )
-            .map { AuthApplicationsTable.createEntity(it) }
+        call.confirmEmail(AuthApplicationType.sign_up_init, AuthApplicationType.sign_up_complete)
+    }
 
-        if (applications.isNotEmpty()) {
-            val application = applications.first()
-            if (request.code.sha256() == application.code) {
-                db.delete(AuthApplicationsTable) { it.token eq request.token }
-                db.update(UsersTable) {
-                    set(it.password, application.password)
-                    where { it.id eq application.userId }
-                }
-                createRefreshToken(application.userId).apply {
-                    call.respondWithTokens(application.userId, this)
-                    return@post
-                }
-            } else {
-                call.respondWithError(
-                    HttpStatusCode.BadRequest,
-                    ErrorDescriptions.wrongConfirmationCode
-                )
-                return@post
-            }
-        }
-
-        call.respondWithError(
-            HttpStatusCode.BadRequest,
-            ErrorDescriptions.confirmationFailed
-        )
+    post("/v1/auth/sign_up/complete") {
+        call.setPassword(AuthApplicationType.sign_up_complete)
     }
 
     post("/v1/auth/login") {
@@ -267,79 +313,11 @@ fun Routing.configureAuthService() {
     }
 
     post("/v1/auth/recovery/confirm") {
-        val request = call.receive<EmailConfirmationRequest>()
-
-        val applications = db.from(AuthApplicationsTable)
-            .select()
-            .where(
-                (AuthApplicationsTable.token eq request.token)
-                        and (AuthApplicationsTable.type eq AuthApplicationType.recovery_init)
-            )
-            .map { AuthApplicationsTable.createEntity(it) }
-
-        if (applications.isNotEmpty()) {
-            val application = applications.first()
-            if (request.code.sha256() == application.code) {
-                db.delete(AuthApplicationsTable) { it.token eq request.token }
-                createNewApplication(AuthApplicationType.recovery_complete, application.userId)?.let {
-                    call.respondWithData(AuthApplicationResponse(it))
-                    return@post
-                }
-            } else {
-                call.respondWithError(
-                    HttpStatusCode.BadRequest,
-                    ErrorDescriptions.wrongConfirmationCode
-                )
-                return@post
-            }
-        }
-
-        call.respondWithError(
-            HttpStatusCode.BadRequest,
-            ErrorDescriptions.confirmationFailed
-        )
+        call.confirmEmail(AuthApplicationType.recovery_init, AuthApplicationType.recovery_complete)
     }
 
     post("/v1/auth/recovery/complete") {
-        val request = call.receive<AccountRecoveryCompleteRequest>()
-
-        if (!PasswordValidator.isPasswordValid(request.password)) {
-            call.respondWithError(
-                HttpStatusCode.BadRequest,
-                ErrorDescriptions.invalidRecoveryData
-            )
-            return@post
-        }
-
-        val applications = db.from(AuthApplicationsTable)
-            .select()
-            .where(
-                (AuthApplicationsTable.token eq request.token)
-                        and (AuthApplicationsTable.type eq AuthApplicationType.recovery_complete)
-            )
-            .map { AuthApplicationsTable.createEntity(it) }
-
-        if (applications.isNotEmpty()) {
-            val application = applications.first()
-
-            val changedUsers = db.update(UsersTable) {
-                set(it.password, request.password.sha256())
-                where { it.id eq application.userId }
-            }
-
-            if (changedUsers == 1) {
-                db.delete(AuthApplicationsTable) { it.token eq request.token }
-                createRefreshToken(application.userId).apply {
-                    call.respondWithTokens(application.userId, this)
-                    return@post
-                }
-            }
-        }
-
-        call.respondWithError(
-            HttpStatusCode.BadRequest,
-            ErrorDescriptions.passwordChangeFailed
-        )
+        call.setPassword(AuthApplicationType.recovery_complete)
     }
 
     post("/v1/auth/resend_code") {
@@ -348,7 +326,7 @@ fun Routing.configureAuthService() {
             .select()
             .where(
                 (AuthApplicationsTable.token eq request.token) and
-                        ((AuthApplicationsTable.type eq AuthApplicationType.sign_up)
+                        ((AuthApplicationsTable.type eq AuthApplicationType.sign_up_init)
                                 or (AuthApplicationsTable.type eq AuthApplicationType.recovery_init))
             )
             .map { AuthApplicationsTable.createEntity(it) }
@@ -378,4 +356,6 @@ fun Routing.configureAuthService() {
             ErrorDescriptions.codeResendFailed
         )
     }
+
+    // TODO: logout and remove account
 }

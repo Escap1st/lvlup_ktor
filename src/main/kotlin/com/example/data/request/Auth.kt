@@ -4,11 +4,10 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class SignUpRequest(
+data class SignUpInitRequest(
     val name: String,
     val surname: String,
     val email: String,
-    val password: String
 )
 
 @Serializable
@@ -29,7 +28,7 @@ data class AccountRecoveryInitRequest(
 )
 
 @Serializable
-data class AccountRecoveryCompleteRequest(
+data class PasswordChangeRequest(
     val token: String,
     val password: String,
 )

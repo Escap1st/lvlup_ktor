@@ -8,7 +8,6 @@ interface AuthApplicationEntity : Entity<AuthApplicationEntity> {
     val userId: String
     val code: String?
     val datetime: LocalDateTime
-    val password: String?
     val type: AuthApplicationType
 }
 
@@ -19,7 +18,8 @@ interface RefreshTokenEntity : Entity<RefreshTokenEntity> {
 }
 
 enum class AuthApplicationType {
-    sign_up,
+    sign_up_init,
+    sign_up_complete,
     recovery_init,
     recovery_complete,
 }

@@ -13,7 +13,6 @@ object AuthApplicationsTable : Table<AuthApplicationEntity>("auth_applications")
     val userId = varchar("user_id").bindTo { it.userId }
     val code = varchar("code").bindTo { it.code }
     val datetime = datetime("datetime").bindTo { it.datetime }
-    val password = varchar("password").bindTo { it.password }
     val type = enum<AuthApplicationType>("type").bindTo { it.type }
 }
 
