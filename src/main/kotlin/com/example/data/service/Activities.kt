@@ -56,14 +56,16 @@ fun Route.configureActivitiesService() {
                 .map { activity -> activity.activityId }
 
             val toRemove = userActivitiesIds.filter { id -> !request.activitiesIds.contains(id) }
-            db.delete(UsersActivitiesTable) { it.activityId inList toRemove }
+            if (toRemove.isNotEmpty()) db.delete(UsersActivitiesTable) { it.activityId inList toRemove }
 
             val toAdd = request.activitiesIds.filter { id -> !userActivitiesIds.contains(id) }
-            db.batchInsert(UsersActivitiesTable) {
-                toAdd.map { id ->
-                    item {
-                        set(it.userId, userId)
-                        set(it.activityId, id)
+            if (toAdd.isNotEmpty()) {
+                db.batchInsert(UsersActivitiesTable) {
+                    toAdd.map { id ->
+                        item {
+                            set(it.userId, userId)
+                            set(it.activityId, id)
+                        }
                     }
                 }
             }

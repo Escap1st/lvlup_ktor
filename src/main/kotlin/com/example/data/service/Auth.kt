@@ -50,7 +50,7 @@ fun Routing.configureAuthService() {
     ): String? {
         val userApplies = db.from(AuthApplicationsTable)
             .select()
-            .where((AuthApplicationsTable.userId eq userId) and (AuthApplicationsTable.type eq type))
+            .where(AuthApplicationsTable.userId eq userId)
         val token = UUID.randomUUID().toString()
         val appliedCount = if (userApplies.totalRecords == 0) {
             db.insert(AuthApplicationsTable) {
@@ -65,8 +65,8 @@ fun Routing.configureAuthService() {
                 set(it.token, token)
                 set(it.datetime, LocalDateTime.now())
                 set(it.code, code?.sha256())
+                set(it.type, type)
                 where { it.userId eq userId }
-                where { it.type eq type }
             }
         }
 
