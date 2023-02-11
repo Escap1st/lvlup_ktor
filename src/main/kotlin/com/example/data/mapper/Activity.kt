@@ -6,7 +6,6 @@ import com.example.data.response.ActivityResponse
 fun ActivityEntity.toResponse(): ActivityResponse {
     return ActivityResponse(
         id,
-        name,
         getActivityDisplayName(name),
         "/static/$name.png"
     )

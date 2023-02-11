@@ -12,6 +12,5 @@ data class ActivityListResponse(
 data class ActivityResponse(
     val id: Int,
     val name: String,
-    @SerialName("display_name") val displayName: String,
     @SerialName("image_endpoint") val imageEndpoint: String
 )

@@ -23,7 +23,6 @@ fun Application.configureRouting() {
         configureTripsService()
         configureActivitiesService()
         configureUsersService()
-        configureProfileService()
         configureAuthService()
     }
 }

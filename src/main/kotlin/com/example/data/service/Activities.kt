@@ -32,7 +32,7 @@ fun Route.configureActivitiesService() {
 
     authenticate {
         post("/v1/activities/favorite") {
-            val userId = call.getClaim(Claims.userId)
+            val userId = call.getClaim(Claims.userId)!!
             val request = call.receive<ActivityListRequest>()
 
             val allActivitiesIds = db.from(ActivityTable)
@@ -76,7 +76,7 @@ fun Route.configureActivitiesService() {
 
     authenticate {
         get("/v1/activities/favorite") {
-            val userId = call.getClaim(Claims.userId)
+            val userId = call.getClaim(Claims.userId)!!
 
             val userActivitiesIds = db.from(UsersActivitiesTable)
                 .select()

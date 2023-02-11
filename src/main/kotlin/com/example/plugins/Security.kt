@@ -48,8 +48,8 @@ fun Application.configureSecurity() {
             }
             validate { credential ->
                 val db = DatabaseConnection.database
-                val userId = credential.payload.getClaim(Claims.userId).asString()
-                if (userId != "") {
+                val userId = credential.payload.getClaim(Claims.userId)?.asString()
+                if (!userId.isNullOrEmpty()) {
                     val user = db.from(UsersTable)
                         .select()
                         .where { UsersTable.id eq userId }
@@ -131,6 +131,7 @@ class Claims {
     }
 }
 
-fun ApplicationCall.getClaim(claim: String): String {
-    return principal<JWTPrincipal>()!!.payload.getClaim(claim).asString()
+fun ApplicationCall.getClaim(claim: String): String? {
+    val requiredClaim = principal<JWTPrincipal>()?.payload?.getClaim(claim)
+    return if (requiredClaim?.isNull != false) null else requiredClaim.asString()
 }
