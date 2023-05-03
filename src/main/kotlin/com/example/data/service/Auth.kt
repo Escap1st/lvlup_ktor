@@ -4,9 +4,10 @@ import com.example.data.database.entity.AuthApplicationType
 import com.example.data.database.table.AuthApplicationsTable
 import com.example.data.database.table.RefreshTokensTable
 import com.example.data.database.table.UsersTable
+import com.example.data.model.request.*
 import com.example.data.request.*
-import com.example.data.response.AuthApplicationResponse
-import com.example.data.response.ErrorDescriptions
+import com.example.data.model.response.AuthApplicationResponse
+import com.example.data.model.response.ErrorDescriptions
 import com.example.plugins.DatabaseConnection
 import com.example.plugins.respondWithTokens
 import com.example.plugins.sha256

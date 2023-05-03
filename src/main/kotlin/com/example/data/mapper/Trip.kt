@@ -1,7 +1,7 @@
 package com.example.data.mapper
 
 import com.example.data.database.entity.TripEntity
-import com.example.data.response.TripResponse
+import com.example.data.model.response.TripResponse
 import java.time.format.DateTimeFormatter
 
 fun TripEntity.toResponse(): TripResponse {

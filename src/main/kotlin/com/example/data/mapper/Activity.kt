@@ -1,7 +1,7 @@
 package com.example.data.mapper
 
 import com.example.data.database.entity.ActivityEntity
-import com.example.data.response.ActivityResponse
+import com.example.data.model.response.ActivityResponse
 
 fun ActivityEntity.toResponse(): ActivityResponse {
     return ActivityResponse(

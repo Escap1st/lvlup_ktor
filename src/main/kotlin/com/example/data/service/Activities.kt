@@ -1,13 +1,11 @@
 package com.example.data.service
 
-import com.example.data.database.table.ActivityTable
-import com.example.data.database.table.UsersActivitiesTable
 import com.example.data.mapper.toResponse
-import com.example.data.request.ActivityListRequest
-import com.example.data.response.ActivityListResponse
-import com.example.data.response.ErrorDescriptions
+import com.example.data.model.request.ActivityListRequest
+import com.example.data.model.response.ActivityListResponse
+import com.example.data.model.response.ErrorDescriptions
+import com.example.data.repository.ActivityRepository
 import com.example.plugins.Claims
-import com.example.plugins.DatabaseConnection
 import com.example.plugins.getClaim
 import com.example.tools.respondSuccess
 import com.example.tools.respondWithData
@@ -17,28 +15,16 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.routing.*
-import org.ktorm.dsl.*
 
 fun Route.configureActivitiesService() {
-    val db = DatabaseConnection.database
-
-    fun getUserFavorites(userId: String): List<Int> {
-        return db.from(UsersActivitiesTable)
-            .select()
-            .where(UsersActivitiesTable.userId eq userId)
-            .map { UsersActivitiesTable.createEntity(it) }
-            .map { activity -> activity.activityId }
-    }
-
     authenticate(optional = true) {
         get("/v1/activities") {
-            var activities = db.from(ActivityTable)
-                .select()
-                .map { ActivityTable.createEntity(it) }
+            var activities = ActivityRepository
+                .getAllActivities()
                 .map { it.toResponse() }
 
             call.getClaim(Claims.userId)?.let {
-                val favorites = getUserFavorites(it)
+                val favorites = ActivityRepository.getUserFavoritesIds(it)
                 activities = activities.sortedWith { a1, a2 ->
                     when {
                         favorites.contains(a2.id) -> 1
@@ -57,12 +43,10 @@ fun Route.configureActivitiesService() {
             val userId = call.getClaim(Claims.userId)!!
             val request = call.receive<ActivityListRequest>()
 
-            val allActivitiesIds = db.from(ActivityTable)
-                .select()
-                .map { ActivityTable.createEntity(it) }
+            val allActivitiesIds = ActivityRepository.getAllActivitiesIds()
 
             request.activitiesIds.forEach { activityId ->
-                if (allActivitiesIds.none { it.id == activityId }) {
+                if (allActivitiesIds.none { it == activityId }) {
                     call.respondWithError(
                         HttpStatusCode.NotFound,
                         ErrorDescriptions.noActivityFound,
@@ -71,26 +55,13 @@ fun Route.configureActivitiesService() {
                 }
             }
 
-            val userActivitiesIds = db.from(UsersActivitiesTable)
-                .select()
-                .where(UsersActivitiesTable.userId eq userId)
-                .map { UsersActivitiesTable.createEntity(it) }
-                .map { activity -> activity.activityId }
+            val userActivitiesIds = ActivityRepository.getUserFavoritesIds(userId)
 
             val toRemove = userActivitiesIds.filter { id -> !request.activitiesIds.contains(id) }
-            if (toRemove.isNotEmpty()) db.delete(UsersActivitiesTable) { it.activityId inList toRemove }
+            if (toRemove.isNotEmpty()) ActivityRepository.deleteUserActivities(userId, toRemove)
 
             val toAdd = request.activitiesIds.filter { id -> !userActivitiesIds.contains(id) }
-            if (toAdd.isNotEmpty()) {
-                db.batchInsert(UsersActivitiesTable) {
-                    toAdd.map { id ->
-                        item {
-                            set(it.userId, userId)
-                            set(it.activityId, id)
-                        }
-                    }
-                }
-            }
+            if (toAdd.isNotEmpty()) ActivityRepository.insertUserActivities(userId, toAdd)
 
             call.respondSuccess()
         }
@@ -99,16 +70,8 @@ fun Route.configureActivitiesService() {
     authenticate {
         get("/v1/activities/favorite") {
             val userId = call.getClaim(Claims.userId)!!
-
-            val userFavorites = getUserFavorites(userId)
-
-            val activities = db.from(ActivityTable)
-                .select()
-                .where(ActivityTable.id inList userFavorites)
-                .map { ActivityTable.createEntity(it) }
-                .map { it.toResponse() }
-
-            call.respondWithData(ActivityListResponse(activities))
+            val userFavorites = ActivityRepository.getUserFavorites(userId)
+            call.respondWithData(ActivityListResponse(userFavorites.map { it.toResponse() }))
         }
     }
 }

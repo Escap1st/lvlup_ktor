@@ -1,7 +1,7 @@
 package com.example.tools
 
-import com.example.data.response.ErrorDescription
-import com.example.data.response.Wrapper
+import com.example.data.model.response.ErrorDescription
+import com.example.data.model.response.Wrapper
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*

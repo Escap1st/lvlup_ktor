@@ -2,8 +2,8 @@ package com.example.data.service
 
 import com.example.data.database.table.TripTable
 import com.example.data.mapper.toResponse
-import com.example.data.response.ErrorDescriptions
-import com.example.data.response.TripListResponse
+import com.example.data.model.response.ErrorDescriptions
+import com.example.data.model.response.TripListResponse
 import com.example.plugins.DatabaseConnection
 import com.example.tools.respondWithData
 import com.example.tools.respondWithError

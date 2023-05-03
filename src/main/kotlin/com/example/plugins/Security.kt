@@ -3,8 +3,8 @@ package com.example.plugins
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.example.data.database.table.UsersTable
-import com.example.data.response.ErrorDescriptions
-import com.example.data.response.TokensResponse
+import com.example.data.model.response.ErrorDescriptions
+import com.example.data.model.response.TokensResponse
 import com.example.plugins.SecurityConfig.audience
 import com.example.plugins.SecurityConfig.issuer
 import com.example.plugins.SecurityConfig.secret
