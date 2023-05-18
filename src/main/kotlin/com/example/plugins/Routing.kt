@@ -8,7 +8,7 @@ import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
-fun Application.configureRouting() {
+fun Application.configureRouting(dataLayer: DataLayer) {
     install(StatusPages) {
         exception<Throwable> { call, cause ->
             call.respondText(text = "500: $cause", status = HttpStatusCode.InternalServerError)
@@ -20,9 +20,9 @@ fun Application.configureRouting() {
             resources("static")
         }
 
-        configureTripsService()
-        configureActivitiesService()
-        configureUsersService()
-        configureAuthService()
+        configureTripsService(dataLayer.tripRepository)
+        configureActivitiesService(dataLayer.activityRepository)
+        configureUsersService(dataLayer.userRepository)
+        configureAuthService(dataLayer.authRepository, dataLayer.userRepository)
     }
 }

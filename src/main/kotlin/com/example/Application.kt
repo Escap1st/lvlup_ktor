@@ -1,9 +1,6 @@
 package com.example
 
-import com.example.plugins.configureHTTP
-import com.example.plugins.configureRouting
-import com.example.plugins.configureSecurity
-import com.example.plugins.configureSerialization
+import com.example.plugins.*
 import io.ktor.network.tls.certificates.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -41,8 +38,9 @@ fun main() {
 }
 
 fun Application.module() {
-    configureSecurity()
+    val dataLayer = DataLayer()
+    configureSecurity(dataLayer.userRepository)
     configureSerialization()
     configureHTTP()
-    configureRouting()
+    configureRouting(dataLayer)
 }

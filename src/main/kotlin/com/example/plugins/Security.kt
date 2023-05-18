@@ -2,9 +2,9 @@ package com.example.plugins
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import com.example.data.database.table.UsersTable
 import com.example.data.model.response.ErrorDescriptions
 import com.example.data.model.response.TokensResponse
+import com.example.data.repository.UserRepository
 import com.example.plugins.SecurityConfig.audience
 import com.example.plugins.SecurityConfig.issuer
 import com.example.plugins.SecurityConfig.secret
@@ -14,7 +14,6 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
-import org.ktorm.dsl.*
 import java.security.MessageDigest
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -29,7 +28,7 @@ object SecurityConfig {
         "http://lvl_up.com" //this@configureSecurity.environment.config.property("jwt.audience").getString()
 }
 
-fun Application.configureSecurity() {
+fun Application.configureSecurity(repository: UserRepository) {
     authentication {
         jwt {
 //            realm = "Access to 'hello'" //this@configureSecurity.environment.config.property("jwt.realm").getString()
@@ -47,17 +46,12 @@ fun Application.configureSecurity() {
                 )
             }
             validate { credential ->
-                val db = DatabaseConnection.database
                 val userId = credential.payload.getClaim(Claims.userId)?.asString()
                 if (!userId.isNullOrEmpty()) {
-                    val user = db.from(UsersTable)
-                        .select()
-                        .where { UsersTable.id eq userId }
-                        .map { UsersTable.createEntity(it) }
-                        .firstOrNull()
+                    val user = repository.getUserById(userId)
 
                     if (user?.password != null &&
-                        user.password!!.sha256() == credential.payload.getClaim(Claims.version).asString()
+                        (userId + user.password!!).sha256() == credential.payload.getClaim(Claims.version).asString()
                     ) {
                         return@validate JWTPrincipal(credential.payload)
                     }
@@ -69,11 +63,11 @@ fun Application.configureSecurity() {
     }
 }
 
-suspend fun ApplicationCall.respondWithTokens(userId: String, refreshToken: String) {
+suspend fun ApplicationCall.respondWithTokens(repository: UserRepository, userId: String, refreshToken: String) {
     val issuedAt = Date()
     val accessTokenTtl = 3 * 60 * 1000L // 3 minutes
     val expiresAt = Date(issuedAt.time + accessTokenTtl)
-    val accessToken = generateToken(audience, issuer, secret, userId, issuedAt, expiresAt)
+    val accessToken = generateToken(repository, audience, issuer, secret, userId, issuedAt, expiresAt)
     val tokensResponse = TokensResponse(
         userId,
         accessToken,
@@ -89,6 +83,7 @@ fun Date.formatZoned(): String {
 }
 
 fun generateToken(
+    repository: UserRepository,
     audience: String,
     issuer: String,
     secret: String,
@@ -96,12 +91,7 @@ fun generateToken(
     issuedAt: Date,
     expiresAt: Date,
 ): String {
-    val version = DatabaseConnection.database
-        .from(UsersTable)
-        .select(UsersTable.password)
-        .where { UsersTable.id eq userId }
-        .map { it[UsersTable.password] }
-        .first()!!
+    val version = userId + repository.getUsersPassword(userId)
 
     val token = JWT.create()
         .withAudience(audience)

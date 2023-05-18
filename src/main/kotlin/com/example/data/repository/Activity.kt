@@ -3,12 +3,10 @@ package com.example.data.repository
 import com.example.data.database.entity.ActivityEntity
 import com.example.data.database.table.ActivityTable
 import com.example.data.database.table.UsersActivitiesTable
-import com.example.plugins.DatabaseConnection
+import org.ktorm.database.Database
 import org.ktorm.dsl.*
 
-object ActivityRepository {
-    private val db = DatabaseConnection.database
-
+class ActivityRepository(private val db: Database) {
     fun getAllActivities(): List<ActivityEntity> = db.from(ActivityTable)
         .select()
         .map { ActivityTable.createEntity(it) }

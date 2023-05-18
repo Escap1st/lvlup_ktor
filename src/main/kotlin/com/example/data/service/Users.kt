@@ -1,32 +1,25 @@
 package com.example.data.service
 
-import com.example.data.database.table.UsersTable
 import com.example.data.mapper.toResponse
-import com.example.plugins.Claims
-import com.example.plugins.DatabaseConnection
-import com.example.plugins.getClaim
+import com.example.data.model.response.ErrorDescriptions
+import com.example.data.repository.UserRepository
 import com.example.tools.respondWithData
+import com.example.tools.respondWithError
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.routing.*
-import org.ktorm.dsl.*
 
-fun Route.configureUsersService() {
-    val db = DatabaseConnection.database
-
+fun Route.configureUsersService(repository: UserRepository) {
     authenticate(optional = true) {
         get("/v1/users/{id}") {
-            val callingUserId = call.getClaim(Claims.userId)
-
-            val user = db.from(UsersTable)
-                .select()
-                .where(UsersTable.id eq call.parameters["id"]!!)
-                .map { UsersTable.createEntity(it) }
-                .single()
-                .toResponse()
-
-
-            call.respondWithData(user)
+//            val callingUserId = call.getClaim(Claims.userId)
+            val user = repository.getUserById(call.parameters["id"]!!)?.toResponse()
+            if (user == null) {
+                call.respondWithError(HttpStatusCode.NotFound, ErrorDescriptions.noUserFound)
+            } else {
+                call.respondWithData(user)
+            }
         }
     }
 }

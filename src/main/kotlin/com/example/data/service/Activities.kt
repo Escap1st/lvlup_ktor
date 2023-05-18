@@ -16,15 +16,15 @@ import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.routing.*
 
-fun Route.configureActivitiesService() {
+fun Route.configureActivitiesService(repository: ActivityRepository) {
     authenticate(optional = true) {
         get("/v1/activities") {
-            var activities = ActivityRepository
+            var activities = repository
                 .getAllActivities()
                 .map { it.toResponse() }
 
             call.getClaim(Claims.userId)?.let {
-                val favorites = ActivityRepository.getUserFavoritesIds(it)
+                val favorites = repository.getUserFavoritesIds(it)
                 activities = activities.sortedWith { a1, a2 ->
                     when {
                         favorites.contains(a2.id) -> 1
@@ -43,7 +43,7 @@ fun Route.configureActivitiesService() {
             val userId = call.getClaim(Claims.userId)!!
             val request = call.receive<ActivityListRequest>()
 
-            val allActivitiesIds = ActivityRepository.getAllActivitiesIds()
+            val allActivitiesIds = repository.getAllActivitiesIds()
 
             request.activitiesIds.forEach { activityId ->
                 if (allActivitiesIds.none { it == activityId }) {
@@ -55,13 +55,13 @@ fun Route.configureActivitiesService() {
                 }
             }
 
-            val userActivitiesIds = ActivityRepository.getUserFavoritesIds(userId)
+            val userActivitiesIds = repository.getUserFavoritesIds(userId)
 
             val toRemove = userActivitiesIds.filter { id -> !request.activitiesIds.contains(id) }
-            if (toRemove.isNotEmpty()) ActivityRepository.deleteUserActivities(userId, toRemove)
+            if (toRemove.isNotEmpty()) repository.deleteUserActivities(userId, toRemove)
 
             val toAdd = request.activitiesIds.filter { id -> !userActivitiesIds.contains(id) }
-            if (toAdd.isNotEmpty()) ActivityRepository.insertUserActivities(userId, toAdd)
+            if (toAdd.isNotEmpty()) repository.insertUserActivities(userId, toAdd)
 
             call.respondSuccess()
         }
@@ -70,7 +70,7 @@ fun Route.configureActivitiesService() {
     authenticate {
         get("/v1/activities/favorite") {
             val userId = call.getClaim(Claims.userId)!!
-            val userFavorites = ActivityRepository.getUserFavorites(userId)
+            val userFavorites = repository.getUserFavorites(userId)
             call.respondWithData(ActivityListResponse(userFavorites.map { it.toResponse() }))
         }
     }

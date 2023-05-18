@@ -1,14 +1,11 @@
 package com.example.data.service
 
 import com.example.data.database.entity.AuthApplicationType
-import com.example.data.database.table.AuthApplicationsTable
-import com.example.data.database.table.RefreshTokensTable
-import com.example.data.database.table.UsersTable
 import com.example.data.model.request.*
-import com.example.data.request.*
 import com.example.data.model.response.AuthApplicationResponse
 import com.example.data.model.response.ErrorDescriptions
-import com.example.plugins.DatabaseConnection
+import com.example.data.repository.AuthRepository
+import com.example.data.repository.UserRepository
 import com.example.plugins.respondWithTokens
 import com.example.plugins.sha256
 import com.example.tools.EmailValidator
@@ -19,20 +16,13 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.routing.*
-import org.ktorm.dsl.*
 import java.time.LocalDateTime
 import java.util.*
 
-fun Routing.configureAuthService() {
-    val db = DatabaseConnection.database
-
+fun Routing.configureAuthService(authRepository: AuthRepository, userRepository: UserRepository) {
     fun createRefreshToken(userId: String): String {
         return UUID.randomUUID().toString().apply {
-            db.insert(RefreshTokensTable) {
-                set(it.token, this@apply)
-                set(it.expiresAt, LocalDateTime.now().plusWeeks(3))
-                set(it.userId, userId)
-            }
+            authRepository.insertRefreshToken(this@apply, userId)
         }
     }
 
@@ -49,26 +39,11 @@ fun Routing.configureAuthService() {
         userId: String,
         code: String? = null
     ): String? {
-        val userApplies = db.from(AuthApplicationsTable)
-            .select()
-            .where(AuthApplicationsTable.userId eq userId)
         val token = UUID.randomUUID().toString()
-        val appliedCount = if (userApplies.totalRecords == 0) {
-            db.insert(AuthApplicationsTable) {
-                set(it.token, token)
-                set(it.userId, userId)
-                set(it.datetime, LocalDateTime.now())
-                set(it.type, type)
-                if (code != null) set(it.code, code.sha256())
-            }
+        val appliedCount = if (authRepository.isUserApplied(userId)) {
+            authRepository.initApplication(token, userId, type, code)
         } else {
-            db.update(AuthApplicationsTable) {
-                set(it.token, token)
-                set(it.datetime, LocalDateTime.now())
-                set(it.code, code?.sha256())
-                set(it.type, type)
-                where { it.userId eq userId }
-            }
+            authRepository.recreateApplication(token, userId, type, code)
         }
 
         return if (appliedCount == 1) token else null
@@ -80,18 +55,12 @@ fun Routing.configureAuthService() {
     ) {
         val request = receive<EmailConfirmationRequest>()
 
-        val applications = db.from(AuthApplicationsTable)
-            .select()
-            .where(
-                (AuthApplicationsTable.token eq request.token) and
-                        (AuthApplicationsTable.type eq initApplicationType)
-            )
-            .map { AuthApplicationsTable.createEntity(it) }
+        val applications = authRepository.getApplicationsByTokenAndType(request.token, listOf(initApplicationType))
 
         if (applications.isNotEmpty()) {
             val application = applications.first()
             if (request.code.sha256() == application.code) {
-                db.delete(AuthApplicationsTable) { it.token eq request.token }
+                authRepository.deleteApplication(request.token)
                 createNewApplication(completeApplicationType, application.userId)?.let {
                     respondWithData(AuthApplicationResponse(it))
                     return
@@ -122,26 +91,16 @@ fun Routing.configureAuthService() {
             return
         }
 
-        val applications = db.from(AuthApplicationsTable)
-            .select()
-            .where(
-                (AuthApplicationsTable.token eq request.token)
-                        and (AuthApplicationsTable.type eq applicationType)
-            )
-            .map { AuthApplicationsTable.createEntity(it) }
+        val applications = authRepository.getApplicationsByTokenAndType(request.token, listOf(applicationType))
 
         if (applications.isNotEmpty()) {
             val application = applications.first()
 
-            val changedUsers = db.update(UsersTable) {
-                set(it.password, request.password.sha256())
-                where { it.id eq application.userId }
-            }
-
+            val changedUsers = userRepository.changePassword(application.userId, request.password.sha256())
             if (changedUsers == 1) {
-                db.delete(AuthApplicationsTable) { it.token eq request.token }
+                authRepository.deleteApplication(request.token)
                 createRefreshToken(application.userId).apply {
-                    respondWithTokens(application.userId, this)
+                    respondWithTokens(userRepository, application.userId, this)
                     return
                 }
             }
@@ -157,9 +116,7 @@ fun Routing.configureAuthService() {
         val request = call.receive<SignUpInitRequest>()
 
         // validate received data
-        if (request.name.isBlank() || request.surname.isBlank()
-            || !EmailValidator.isEmailValid(request.email)
-        ) {
+        if (request.name.isBlank() || request.surname.isBlank() || !EmailValidator.isEmailValid(request.email)) {
             call.respondWithError(
                 HttpStatusCode.BadRequest,
                 ErrorDescriptions.invalidSignUpData
@@ -168,12 +125,9 @@ fun Routing.configureAuthService() {
         }
 
         // check if user with the same email is registered
-        val registeredUsers = db.from(UsersTable)
-            .select()
-            .where(UsersTable.email eq request.email)
-            .map { UsersTable.createEntity(it) }
+        val registeredUser = userRepository.getUserByEmail(request.email)
 
-        if (registeredUsers.firstOrNull()?.password != null) {
+        if (registeredUser?.password != null) {
             call.respondWithError(
                 HttpStatusCode.BadRequest,
                 ErrorDescriptions.userIsRegistered
@@ -181,27 +135,18 @@ fun Routing.configureAuthService() {
             return@post
         }
 
-        val haveUserWithTheSameEmail = registeredUsers.isNotEmpty()
+        val haveUserWithTheSameEmail = registeredUser != null
         val userId = if (haveUserWithTheSameEmail) {
-            registeredUsers.first().id
+            registeredUser!!.id
         } else {
             UUID.randomUUID().toString()
         }
 
         // creating new or updating current user
         val insertUser = if (haveUserWithTheSameEmail) {
-            db.update(UsersTable) {
-                set(it.name, request.name)
-                set(it.surname, request.surname)
-                where { it.email eq request.email }
-            }
+            userRepository.renameUser(userId, request.name, request.surname)
         } else {
-            db.insert(UsersTable) {
-                set(it.id, userId)
-                set(it.name, request.name)
-                set(it.surname, request.surname)
-                set(it.email, request.email)
-            }
+            userRepository.initUser(userId, request.name, request.surname, request.email)
         }
 
         if (insertUser == 1) {
@@ -231,15 +176,11 @@ fun Routing.configureAuthService() {
 
     post("/v1/auth/login") {
         val request = call.receive<LoginRequest>()
-        val users = db.from(UsersTable)
-            .select()
-            .where((UsersTable.email eq request.email) and (UsersTable.password eq request.password.sha256()))
-            .map { UsersTable.createEntity(it) }
+        val user = userRepository.getUserByCredentials(request.email, request.password.sha256())
 
-        if (users.size == 1) {
-            val userId = users.first().id
-            createRefreshToken(userId).apply {
-                call.respondWithTokens(userId, this)
+        if (user != null) {
+            createRefreshToken(user.id).apply {
+                call.respondWithTokens(userRepository, user.id, this)
             }
         } else {
             call.respondWithError(
@@ -251,23 +192,12 @@ fun Routing.configureAuthService() {
 
     post("/v1/auth/refresh") {
         val request = call.receive<RefreshRequest>()
-        val dbToken = db.from(RefreshTokensTable)
-            .select()
-            .where(
-                (RefreshTokensTable.token eq request.token)
-                        and (RefreshTokensTable.userId eq request.userId)
-            )
-            .map { RefreshTokensTable.createEntity(it) }
-            .firstOrNull()
+        val dbToken = authRepository.getUsersToken(request.userId, request.token)
 
         if (dbToken?.expiresAt?.isAfter(LocalDateTime.now()) == true) {
             UUID.randomUUID().toString().apply {
-                db.update(RefreshTokensTable) {
-                    set(it.token, this@apply)
-                    set(it.expiresAt, LocalDateTime.now().plusWeeks(3))
-                    where { it.token eq request.token }
-                }
-                call.respondWithTokens(request.userId, this@apply)
+                authRepository.updateToken(request.token, this@apply)
+                call.respondWithTokens(userRepository, request.userId, this@apply)
                 return@post
             }
         }
@@ -285,12 +215,9 @@ fun Routing.configureAuthService() {
             return@post
         }
 
-        val registeredUsers = db.from(UsersTable)
-            .select()
-            .where(UsersTable.email eq request.email)
-            .map { UsersTable.createEntity(it) }
+        val registeredUser = userRepository.getUserByEmail(request.email)
 
-        if (registeredUsers.isEmpty()) {
+        if (registeredUser == null) {
             call.respondWithError(
                 HttpStatusCode.BadRequest,
                 ErrorDescriptions.noUserFound
@@ -300,7 +227,7 @@ fun Routing.configureAuthService() {
 
         createNewApplication(
             AuthApplicationType.recovery_init,
-            registeredUsers.first().id,
+            registeredUser.id,
             code = createConfirmationCode(request.email)
         )?.let {
             call.respondWithData(AuthApplicationResponse(it))
@@ -323,14 +250,13 @@ fun Routing.configureAuthService() {
 
     post("/v1/auth/resend_code") {
         val request = call.receive<CodeResendRequest>()
-        val applications = db.from(AuthApplicationsTable)
-            .select()
-            .where(
-                (AuthApplicationsTable.token eq request.token) and
-                        ((AuthApplicationsTable.type eq AuthApplicationType.sign_up_init)
-                                or (AuthApplicationsTable.type eq AuthApplicationType.recovery_init))
-            )
-            .map { AuthApplicationsTable.createEntity(it) }
+        val applications = authRepository.getApplicationsByTokenAndType(
+            request.token,
+            listOf(
+                AuthApplicationType.sign_up_init,
+                AuthApplicationType.recovery_init
+            ),
+        )
 
         if (applications.isNotEmpty()) {
             val application = applications.first()
@@ -341,12 +267,8 @@ fun Routing.configureAuthService() {
             } else {
                 createConfirmationCode()
             }
-            db.update(AuthApplicationsTable) {
-                set(it.code, newCode)
-                set(it.token, newToken)
-                set(it.datetime, LocalDateTime.now())
-                where { it.token eq request.token }
-            }
+
+            authRepository.updateApplicationCode(request.token, newToken, newCode)
 
             call.respondWithData(AuthApplicationResponse(newToken))
             return@post
