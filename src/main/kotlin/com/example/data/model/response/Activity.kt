@@ -8,7 +8,7 @@ data class ActivityListResponse(
     val activities: List<ActivityResponse>
 )
 
-@Serializable()
+@Serializable
 data class ActivityResponse(
     val id: Int,
     val name: String,
