@@ -11,13 +11,6 @@ interface UsersEntity : Entity<UsersEntity> {
 }
 
 interface UsersActivitiesEntity : Entity<UsersActivitiesEntity> {
-    val id: String
     val userId: String
     val activityId: Int
-}
-
-interface UsersTripsEntity : Entity<UsersTripsEntity> {
-    val id: String
-    val userId: String
-    val tripId: String
 }
