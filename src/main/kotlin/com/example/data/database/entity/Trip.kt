@@ -13,7 +13,7 @@ interface TripEntity : Entity<TripEntity> {
     val dateTo: LocalDateTime
     val price: Double
     val descriptionShort: String
-    val descriptionFull: String
+    val descriptionFull: String?
     val accommodation: String?
 }
 
@@ -50,6 +50,7 @@ interface TripScheduleEntity: Entity<TripScheduleEntity> {
 
 interface TripScheduleEntryEntity: Entity<TripScheduleEntryEntity> {
     val id: Int
+    val title: String
     val scheduleId: Int
     val position: Int
     val timeFrom: LocalTime?

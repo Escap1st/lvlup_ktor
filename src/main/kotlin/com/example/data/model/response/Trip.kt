@@ -12,7 +12,6 @@ data class TripListResponse(
 data class TripResponse(
     val id: String,
     val title: String,
-    val description: String,
     val place: String,
     @SerialName("activity_id") val activityId: Int,
     val price: Double,
@@ -21,7 +20,7 @@ data class TripResponse(
     @SerialName("is_favorite_trip") val isFavoriteTrip: Boolean,
     @SerialName("main_photo") val mainPhoto: String,
     val rating: TripRatingResponse,
-    @SerialName("description_short") val descriptionShort: String?,
+    @SerialName("description_short") val descriptionShort: String,
     @SerialName("preview_photos") val previewPhotos: List<String>?,
     @SerialName("participants_count") val participantsCount: Int?,
     @SerialName("recent_participants") val recentParticipants: List<UserResponse>?,
@@ -56,6 +55,6 @@ data class TripScheduleResponse(
 @Serializable
 data class TripScheduleEntryResponse(
     val title: String,
-    @SerialName("time_from") val timeFrom: String,
-    @SerialName("time_to") val timeTo: String,
+    @SerialName("time_from") val timeFrom: String?,
+    @SerialName("time_to") val timeTo: String?,
 )
