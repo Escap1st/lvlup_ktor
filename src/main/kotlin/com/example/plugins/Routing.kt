@@ -20,7 +20,7 @@ fun Application.configureRouting(dataLayer: DataLayer) {
             resources("static")
         }
 
-        configureTripsService(dataLayer.tripRepository)
+        configureTripsService(dataLayer.tripRepository, dataLayer.userRepository)
         configureActivitiesService(dataLayer.activityRepository)
         configureUsersService(dataLayer.userRepository)
         configureAuthService(dataLayer.authRepository, dataLayer.userRepository)
