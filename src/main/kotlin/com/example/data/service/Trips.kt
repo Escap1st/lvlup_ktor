@@ -20,19 +20,11 @@ fun Route.configureTripsService(tripRepository: TripRepository, userRepository: 
             val userId = call.getClaim(Claims.userId)
 
             val trips = tripRepository.getAllTrips().map {
-                val participants = tripRepository.getParticipants(it.id)
                 it.toResponse(
                     tripRepository.getSchedules(it.id),
                     tripRepository.getProvisions(it.id),
                     tripRepository.getTripRatingInfo(it.id, userId),
                     tripRepository.isFavoriteTrip(it.id, userId),
-                    false,
-                    participants.shuffled()
-                        .take(5)
-                        .mapNotNull { participantId ->
-                            userRepository.getUserById(participantId)
-                        },
-                    participants.size,
                 )
             }
             call.respondWithData(TripListResponse(trips))
@@ -51,11 +43,20 @@ fun Route.configureTripsService(tripRepository: TripRepository, userRepository: 
                     ErrorDescriptions.tripNotFound
                 )
             } else {
+                val participants = tripRepository.getParticipants(tripId)
                 call.respondWithData(
                     trip.toResponse(
                         tripRepository.getSchedules(tripId),
                         tripRepository.getProvisions(tripId),
                         tripRepository.getTripRatingInfo(tripId, userId),
+                        tripRepository.isFavoriteTrip(tripId, userId),
+                        false,
+                        participants.shuffled()
+                            .take(5)
+                            .mapNotNull { participantId ->
+                                userRepository.getUserById(participantId)
+                            },
+                        participants.size,
                     ),
                 )
             }
