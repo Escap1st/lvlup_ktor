@@ -7,6 +7,7 @@ fun UsersEntity.toResponse(): UserResponse {
     return UserResponse(
         id,
         name,
-        surname
+        surname,
+        "/static/$id.jpg"
     )
 }
