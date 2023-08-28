@@ -1,17 +1,21 @@
 package com.example.data.service
 
 import com.example.data.mapper.toResponse
+import com.example.data.model.request.ActivityListRequest
+import com.example.data.model.request.TripLikeRequest
 import com.example.data.model.response.ErrorDescriptions
 import com.example.data.model.response.TripListResponse
 import com.example.data.repository.TripRepository
 import com.example.data.repository.UserRepository
 import com.example.plugins.Claims
 import com.example.plugins.getClaim
+import com.example.tools.respondSuccess
 import com.example.tools.respondWithData
 import com.example.tools.respondWithError
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.request.*
 import io.ktor.server.routing.*
 
 fun Route.configureTripsService(tripRepository: TripRepository, userRepository: UserRepository) {
@@ -60,6 +64,19 @@ fun Route.configureTripsService(tripRepository: TripRepository, userRepository: 
                     ),
                 )
             }
+        }
+    }
+
+    authenticate {
+        post("v1/trips/favorites"){
+            val userId = call.getClaim(Claims.userId)!!
+            val request = call.receive<TripLikeRequest>()
+
+            if (request.liked xor tripRepository.isFavoriteTrip(request.tripId, userId)) {
+                tripRepository.setTripFavorite(request.tripId, userId, request.liked)
+            }
+
+            call.respondSuccess()
         }
     }
 }

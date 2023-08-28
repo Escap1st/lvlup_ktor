@@ -54,6 +54,18 @@ class TripRepository(private val db: Database) {
     else
         false
 
+    fun setTripFavorite(tripId: String, userId: String, liked: Boolean) = if (liked) {
+        db.insert(TripsLikesTable) {
+            set(it.tripId, tripId)
+            set(it.userId, userId)
+        }
+    } else {
+        db.delete(TripsLikesTable) {
+            (it.tripId eq tripId) and (it.userId eq userId)
+        }
+    }
+
+
     fun getParticipants(tripId: String): List<String> = db.from(TripsParticipantsTable)
         .select()
         .where(TripsParticipantsTable.tripId eq tripId)
