@@ -25,8 +25,6 @@ fun Route.configureTripsService(tripRepository: TripRepository, userRepository: 
 
             val trips = tripRepository.getAllTrips().map {
                 it.toResponse(
-                    tripRepository.getSchedules(it.id),
-                    tripRepository.getProvisions(it.id),
                     tripRepository.getTripRatingInfo(it.id, userId),
                     tripRepository.isFavoriteTrip(it.id, userId),
                 )
@@ -50,8 +48,6 @@ fun Route.configureTripsService(tripRepository: TripRepository, userRepository: 
                 val participants = tripRepository.getParticipants(tripId)
                 call.respondWithData(
                     trip.toResponse(
-                        tripRepository.getSchedules(tripId),
-                        tripRepository.getProvisions(tripId),
                         tripRepository.getTripRatingInfo(tripId, userId),
                         tripRepository.isFavoriteTrip(tripId, userId),
                         false,
@@ -61,6 +57,8 @@ fun Route.configureTripsService(tripRepository: TripRepository, userRepository: 
                                 userRepository.getUserById(participantId)
                             },
                         participants.size,
+                        tripRepository.getSchedules(tripId),
+                        tripRepository.getProvisions(tripId),
                     ),
                 )
             }
@@ -68,7 +66,7 @@ fun Route.configureTripsService(tripRepository: TripRepository, userRepository: 
     }
 
     authenticate {
-        post("v1/trips/favorites"){
+        post("v1/trips/favorites") {
             val userId = call.getClaim(Claims.userId)!!
             val request = call.receive<TripLikeRequest>()
 

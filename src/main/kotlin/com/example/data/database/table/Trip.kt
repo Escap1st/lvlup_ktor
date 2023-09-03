@@ -53,4 +53,5 @@ object TripsSchedulesEntriesTable: Table<TripScheduleEntryEntity>("trips_schedul
     val position = int("position").bindTo { it.position }
     val timeFrom = time("time_from").bindTo { it.timeFrom }
     val timeTo = time("time_to").bindTo { it.timeTo }
+    val title = text("title").bindTo { it.title }
 }

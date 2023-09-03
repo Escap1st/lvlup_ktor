@@ -6,13 +6,13 @@ import com.example.data.model.response.*
 import java.time.format.DateTimeFormatter
 
 fun TripEntity.toResponse(
-    schedules: List<Pair<TripScheduleEntity, List<TripScheduleEntryEntity>>>,
-    provisions: List<TripProvisionEntity>,
     rating: TripRatingDto,
     isFavoriteTrip: Boolean = false,
     isFavoritePlace: Boolean? = null,
     recentParticipants: List<UsersEntity>? = null,
     participantsCount: Int? = null,
+    schedules: List<Pair<TripScheduleEntity, List<TripScheduleEntryEntity>>>? = null,
+    provisions: List<TripProvisionEntity>? = null,
 ): TripResponse {
     return TripResponse(
         id,
@@ -31,11 +31,11 @@ fun TripEntity.toResponse(
         recentParticipants?.map { it.toResponse() },
         isFavoritePlace,
         descriptionFull,
-        provisions.map { it.toResponse() },
+        provisions?.map { it.toResponse() },
         accommodation,
         listOf("/static/mountains_view_1.jpg", "/static/mountains_view_2.jpg"),
         listOf("/static/hotel_room_1.jpg", "/static/hotel_room_2.jpg"),
-        schedules.map { it.first.toResponse(it.second) },
+        schedules?.map { it.first.toResponse(it.second) },
     )
 }
 
@@ -56,8 +56,8 @@ fun TripScheduleEntity.toResponse(entries: List<TripScheduleEntryEntity>): TripS
 fun TripScheduleEntryEntity.toResponse(): TripScheduleEntryResponse {
     return TripScheduleEntryResponse(
         title,
-        timeFrom?.format(DateTimeFormatter.ISO_DATE_TIME),
-        timeTo?.format(DateTimeFormatter.ISO_DATE_TIME),
+        timeFrom?.format(DateTimeFormatter.ISO_TIME),
+        timeTo?.format(DateTimeFormatter.ISO_TIME),
     )
 }
 
